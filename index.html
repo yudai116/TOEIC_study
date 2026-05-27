@@ -1159,9 +1159,13 @@ function renderStats() {
       ${renderUpcomingReviews()}
     </div>
 
-    <div style="text-align:center;margin-top:16px">
+    <div style="text-align:center;margin-top:16px;display:flex;flex-direction:column;gap:10px;align-items:center">
+      <button class="btn btn-outline" style="font-size:.8rem"
+        onclick="openImport()">
+        問題データを更新（再インポート）
+      </button>
       <button class="btn btn-outline" style="font-size:.8rem;color:var(--red);border-color:var(--red)"
-        onclick="if(confirm('学習履歴をすべてリセットしますか？'))resetAll()">
+        onclick="if(confirm('学習の進捗・履歴をすべてリセットしますか？\n（問題データは消えません）'))resetAll()">
         進捗をリセット
       </button>
     </div>
