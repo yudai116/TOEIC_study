@@ -710,11 +710,25 @@ const DEMO_QUESTIONS = [
 const Q_DATA_KEY = 'toeic_questions_data';
 
 async function loadQuestions() {
-  // 1. localStorage にインポート済みデータがあれば優先使用
-  const stored = localStorage.getItem(Q_DATA_KEY);
-  if (stored) {
+  // 1. ネットワークから取得（GitHub Pages / ローカルサーバー）
+  try {
+    const r = await fetch('questions.json');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    if (Array.isArray(data) && data.length > 0) {
+      questions = data;
+      usingDemo = false;
+      // オフライン用にキャッシュ保存
+      try { localStorage.setItem(Q_DATA_KEY, JSON.stringify(data)); } catch {}
+      return true;
+    }
+  } catch {}
+
+  // 2. オフラインキャッシュから読み込み（ネットワーク不可時）
+  const cached = localStorage.getItem(Q_DATA_KEY);
+  if (cached) {
     try {
-      const data = JSON.parse(stored);
+      const data = JSON.parse(cached);
       if (Array.isArray(data) && data.length > 0) {
         questions = data;
         usingDemo = false;
@@ -722,18 +736,11 @@ async function loadQuestions() {
       }
     } catch {}
   }
-  // 2. questions.json をフェッチ（ローカルサーバー経由の場合）
-  try {
-    const r = await fetch('questions.json');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    questions = await r.json();
-    usingDemo = false;
-    return true;
-  } catch {
-    questions = DEMO_QUESTIONS;
-    usingDemo = true;
-    return false;
-  }
+
+  // 3. デモモード（questions.json 未コミット）
+  questions = DEMO_QUESTIONS;
+  usingDemo = true;
+  return false;
 }
 
 // ── JSONインポート ────────────────────────────────────────────────
@@ -850,11 +857,13 @@ function renderDashboard() {
         <div style="flex:1">
           <b>デモモード</b>（5問）で動作中です。<br>
           <span style="font-size:.85rem;color:var(--muted)">
-            全問データを読み込むには、Safari でブックマークレットを実行して JSON をコピーし、
-            下の「JSONを読み込む」ボタンから貼り付けてください。
+            全問データを使うには：<br>
+            ① ブックマークレットを実行して JSON をコピー<br>
+            ② GitHub の <code>questions.json</code> として保存してコミット<br>
+            ③ ページをリロード
           </span><br>
-          <button class="btn btn-primary" style="margin-top:10px;padding:8px 16px;font-size:.85rem"
-            onclick="openImport()">JSONを読み込む</button>
+          <button class="btn btn-outline" style="margin-top:10px;padding:6px 14px;font-size:.82rem"
+            onclick="openImport()">直接貼り付けで読み込む（代替手段）</button>
         </div>
        </div>`
     : '';
@@ -1161,8 +1170,8 @@ function renderStats() {
 
     <div style="text-align:center;margin-top:16px;display:flex;flex-direction:column;gap:10px;align-items:center">
       <button class="btn btn-outline" style="font-size:.8rem"
-        onclick="openImport()">
-        問題データを更新（再インポート）
+        onclick="refreshQuestions()">
+        問題データを再取得（キャッシュ更新）
       </button>
       <button class="btn btn-outline" style="font-size:.8rem;color:var(--red);border-color:var(--red)"
         onclick="if(confirm('学習の進捗・履歴をすべてリセットしますか？\n（問題データは消えません）'))resetAll()">
@@ -1276,6 +1285,17 @@ function resetAll() {
   localStorage.removeItem(HISTORY_KEY);
   progress = {};
   showView('dashboard');
+}
+
+async function refreshQuestions() {
+  localStorage.removeItem(Q_DATA_KEY);
+  const ok = await loadQuestions();
+  if (ok) {
+    alert(`✅ ${questions.length}問を再取得しました`);
+    showView('stats');
+  } else {
+    alert('questions.json が見つかりません。GitHubにコミットされているか確認してください。');
+  }
 }
 
 function escHtml(s) {

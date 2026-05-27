@@ -1,14 +1,28 @@
 /**
  * TOEIC Grammar Scraper — ブラウザコンソール版
  *
- * 【使い方】
- * 1. https://zitanstudy.com/?page_id=4190 をブラウザで開く
- * 2. F12 → Console タブ（Macは Cmd+Option+J）
- * 3. このスクリプトをまるごとコピー＆ペーストしてEnter
- * 4. 完了すると questions.json が自動ダウンロードされる
+ * 【全体の流れ】
+ *   スクレイプ → questions.json を GitHub にコミット
+ *   → GitHub Pages が自動デプロイ → サイトで学習
  *
- * ※ スマホ（Android）の場合は Kiwi Browser を使うとコンソールが使えます
- * ※ スマホ（iOS）の場合はブックマークレット版（下部参照）を使ってください
+ * 【PC での使い方】
+ * 1. https://zitanstudy.com/?page_id=4190 をブラウザで開く
+ * 2. F12 → Console タブ（Mac: Cmd+Option+J）
+ * 3. このスクリプトをまるごと貼り付けて Enter
+ * 4. questions.json が自動ダウンロードされる
+ * 5. GitHub の yudai116/TOEIC_study に questions.json をコミット
+ *    （リポジトリ → "Add file" → "Upload files" → questions.json を選択）
+ * 6. main ブランチにマージ → GitHub Pages が自動更新される
+ *
+ * 【iPhone での使い方】
+ * 1. 下部のブックマークレットをセットアップ（初回のみ）
+ * 2. zitanstudy.com でブックマークレットを実行 → JSON テキストをコピー
+ * 3. GitHub.com を Safari で開く → リポジトリ → "Add file" → "Create new file"
+ * 4. ファイル名に "questions.json" と入力
+ * 5. 本文欄にペースト → 画面下「Commit changes」をタップ
+ * 6. main ブランチにマージ → GitHub Pages の URL をリロード
+ *
+ * ※ Android の場合は Kiwi Browser でコンソールが使えます
  */
 
 (async () => {
