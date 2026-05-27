@@ -145,22 +145,16 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
    📱 iPhone（iOS Safari）用ブックマークレット
    ─────────────────────────────────────────────────────────────────────────────
-   【セットアップ手順】
-   1. Safari で https://zitanstudy.com/?page_id=4190 を開いてブックマーク登録
-      （共有ボタン → "ブックマークを追加"）
-   2. ブックマーク一覧を開き、今追加したブックマークを「編集」
-   3. 名前を「TOEIC Scraper」などに変更
-   4. URL 欄を全部消して、↓の javascript: から始まる1行をまるごと貼り付けて保存
+   【ブックマークのURL欄にこの1行だけを貼り付ける】
+
+javascript:var s=document.createElement('script');s.src='https://yudai116.github.io/TOEIC_study/scraper-run.js?t='+Date.now();document.body.appendChild(s);void 0
 
    【使い方】
-   1. Safari で https://zitanstudy.com/?page_id=4190 を開く
-   2. アドレスバーに「TOEIC」と入力してブックマークを選択（タップ）
-   3. 「スクレイピング開始」のアラートが出たら OK → 数十分待つ
-   4. 完了アラートが出たら画面に JSON テキストが表示される
-   5. 「全選択してコピー」ボタンをタップ → コピー完了
-   6. index.html を開き「JSONを読み込む」→ 貼り付け → 読み込む
+   1. Safari で https://zitanstudy.com を開く
+   2. ブックマーク「TOEIC Scraper」をタップ
+   3. 画面中央にオーバーレイが出て進捗表示 → 数十分待つ
+   4. 完了後「全選択してコピー」をタップ
+   5. GitHub の questions.json に貼り付けてコミット
    ═══════════════════════════════════════════════════════════════════════════════
-
-javascript:(async()=>{const B='https://zitanstudy.com',D=700,s=ms=>new Promise(r=>setTimeout(r,ms)),p=new DOMParser(),g=async u=>p.parseFromString(await(await fetch(u)).text(),'text/html'),c=d=>d.querySelector('.entry-content,article,main')||d.body,b=d=>[...c(d).querySelectorAll('p,h1,h2,h3,h4,li')].filter(e=>!e.querySelector('p,h1,h2,h3,h4,li')).map(e=>e.textContent.replace(/\s+/g,' ').trim()).filter(t=>t.length>2);function q(d,u,f){const bl=b(d),R={n:/第\s*(\d+)\s*問/,c:/^[\s　]*[（(]([ABCDabcd])[）)][.\s　]*(.+)/,a:/答[えい][\s　]*[：:]\s*[（(]?([ABCDabcd])[）)]/,t:/^(訳|和訳)/,e:/^(解説)/,v:/^(語彙|単語)/};let id=f,qt='',an='',tr='';const ch={A:'',B:'',C:'',D:''},ex=[],vc=[];let st='pre';for(const k of bl){let m;if((m=R.n.exec(k))&&st==='pre'){id=+m[1];if(/^[^\w]*第\s*\d+\s*問/.test(k)){st='q';continue;}}if((m=R.c.exec(k))){ch[m[1].toUpperCase()]=m[2].trim();st='c';continue;}if((m=R.a.exec(k))){an=m[1].toUpperCase();st='a';continue;}if(R.t.test(k)){tr=k.replace(R.t,'').replace(/^[\s：:]*/,'');st='t';continue;}if(R.e.test(k)){const x=k.replace(R.e,'').replace(/^[\s：:]*/,'');if(x)ex.push(x);st='e';continue;}if(R.v.test(k)){const x=k.replace(R.v,'').replace(/^[\s：:]*/,'');if(x)vc.push(x);st='v';continue;}if(st==='pre'||st==='q'){if(k.length>10&&!/^(HOME|TOEIC|Copyright)/i.test(k)){qt=(qt+' '+k).trim();st='q';}}else if(st==='t'){tr+=' '+k;st='e';}else if(st==='e')ex.push(k);else if(st==='v')vc.push(k);}if(!qt&&!Object.values(ch).some(Boolean))return null;return{id,question:qt.trim(),choices:ch,answer:an,translation:tr.trim(),explanation:ex.join('\n').trim(),vocabulary:vc.join('\n').trim(),source_url:u};}alert('スクレイピング開始！画面はそのまま待ってください（数十分かかります）');const td=await g(`${B}/?page_id=206`);await s(D);const iu=[...new Set([`${B}/?page_id=4190`,...[...c(td).querySelectorAll('a[href*="page_id="]')].map(a=>a.href).filter(h=>!h.includes('page_id=206'))])];const qu=[],se=new Set();for(const i of iu){const d=await g(i);[...c(d).querySelectorAll('a[href*="page_id="]')].filter(a=>/第?\s*\d+\s*問|\b\d+\b/.test(a.textContent)).forEach(a=>{if(!se.has(a.href)){qu.push(a.href);se.add(a.href);}});await s(D);}const qs=[];for(let i=0;i<qu.length;i++){const d=await g(qu[i]),r=q(d,qu[i],i+1);if(r)qs.push(r);await s(D);}qs.sort((a,b)=>a.id-b.id);const json=JSON.stringify(qs);const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:#fff;z-index:99999;display:flex;flex-direction:column;padding:16px;font-family:sans-serif';ov.innerHTML=`<div style="font-weight:700;font-size:1.1rem;margin-bottom:8px">✅ 完了！${qs.length}問取得</div><p style="font-size:.85rem;color:#555;margin-bottom:10px">①下のボタンで全選択してコピー → ②index.htmlの「JSONを読み込む」に貼り付け</p><button onclick="const t=this.nextElementSibling;t.select();document.execCommand('copy');this.textContent='✅ コピーしました！'" style="background:#2563eb;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:1rem;font-weight:700;margin-bottom:10px;cursor:pointer">全選択してコピー</button><textarea readonly style="flex:1;border:1px solid #ccc;border-radius:8px;padding:10px;font-size:.75rem;font-family:monospace">${json}</textarea>`;document.body.appendChild(ov);})();
 
 */
