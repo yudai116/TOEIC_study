@@ -478,6 +478,28 @@
   </div>
 </div>
 
+<!-- プロフィール編集モーダル -->
+<div class="modal-overlay" id="profile-modal" style="display:none" onclick="if(event.target===this)closeProfileEdit()">
+  <div class="modal">
+    <h2>✏️ プロフィール編集</h2>
+    <p>名前とパスワードを変更できます。</p>
+    <div style="font-size:.82rem;font-weight:700;margin-bottom:4px">ユーザー名</div>
+    <input type="text" id="profile-name" maxlength="20" placeholder="ユーザー名"
+      style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:8px;font-size:.95rem;margin-bottom:12px">
+    <div style="font-size:.82rem;font-weight:700;margin-bottom:4px">新しいパスワード<span style="font-weight:400;color:var(--muted)">（変更しない場合は空のまま）</span></div>
+    <input type="password" id="profile-pw" maxlength="30" placeholder="新しいパスワード"
+      style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:8px;font-size:.95rem;margin-bottom:6px">
+    <input type="password" id="profile-pw2" maxlength="30" placeholder="パスワード確認"
+      style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:8px;font-size:.95rem;margin-bottom:12px"
+      onkeydown="if(event.key==='Enter')saveProfile()">
+    <div id="profile-err" style="color:var(--red);font-size:.82rem;margin-bottom:8px;display:none"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeProfileEdit()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveProfile()">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- ユーザーモーダル -->
 <div class="modal-overlay" id="user-modal" style="display:none" onclick="if(event.target===this)closeUserModal()">
   <div class="modal">
@@ -1334,6 +1356,11 @@ function renderSettings() {
           <div style="font-weight:800;font-size:1.1rem">${escHtml(user?.name || '不明')}</div>
           <div style="font-size:.82rem;color:var(--muted)">学習済み ${studied}問 ／ 定着 ${mastered}問</div>
         </div>
+        <button onclick="openProfileEdit()"
+          style="padding:8px 14px;background:var(--blue-l);color:var(--blue);border:none;
+                 border-radius:8px;font-weight:700;font-size:.82rem;cursor:pointer;flex-shrink:0">
+          ✏️ 編集
+        </button>
       </div>
       <button onclick="logout()"
         style="width:100%;padding:13px;background:var(--red-l);color:var(--red);border:none;
@@ -1398,6 +1425,43 @@ function settingsCreateUser() {
   users.push({ id, name, createdAt: Date.now() });
   saveUsers(users);
   authSelect(id);
+}
+
+function openProfileEdit() {
+  const uid   = getCurrentUserId();
+  const users = loadUsers();
+  const user  = users.find(u => u.id === uid);
+  if (!user) return;
+  document.getElementById('profile-name').value = user.name;
+  document.getElementById('profile-pw').value   = '';
+  document.getElementById('profile-pw2').value  = '';
+  document.getElementById('profile-err').style.display = 'none';
+  document.getElementById('profile-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('profile-name').focus(), 100);
+}
+
+function closeProfileEdit() {
+  document.getElementById('profile-modal').style.display = 'none';
+}
+
+function saveProfile() {
+  const name = document.getElementById('profile-name').value.trim();
+  const pw   = document.getElementById('profile-pw').value;
+  const pw2  = document.getElementById('profile-pw2').value;
+  const errEl = document.getElementById('profile-err');
+  if (!name) { errEl.textContent='名前を入力してください'; errEl.style.display='block'; return; }
+  if (pw && pw !== pw2) { errEl.textContent='パスワードが一致しません'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+  const uid   = getCurrentUserId();
+  const users = loadUsers();
+  const idx   = users.findIndex(u => u.id === uid);
+  if (idx < 0) return;
+  users[idx].name = name;
+  if (pw) users[idx].pw = hashPw(pw);
+  saveUsers(users);
+  closeProfileEdit();
+  updateNavUser();
+  showView('settings');
 }
 
 function settingsDeleteUser(uid) {
