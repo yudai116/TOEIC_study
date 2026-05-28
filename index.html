@@ -775,22 +775,23 @@ function doImport() {
 //  キュービルダー
 // ═══════════════════════════════════════════════════════════════
 function buildQueue(mode, shuffle = true) {
+  const usable = questions.filter(q => q.answer && q.choices && q.choices.A);
   let ids;
   if (mode === 'review') {
-    ids = questions
+    ids = usable
       .filter(q => {
         const p = progress[q.id];
         return p && p.level > 0 && isDue(p);
       })
       .map(q => q.id);
   } else if (mode === 'new') {
-    ids = questions
+    ids = usable
       .filter(q => !progress[q.id] || progress[q.id].level === 0)
       .map(q => q.id)
       .slice(0, 20);
   } else {
     // 'all': 未習得の全問題
-    ids = questions
+    ids = usable
       .filter(q => {
         const p = progress[q.id];
         return !p || p.level < REVIEW_INTERVALS.length;
@@ -811,14 +812,15 @@ function buildQueue(mode, shuffle = true) {
 //  統計ヘルパー
 // ═══════════════════════════════════════════════════════════════
 function calcStats() {
-  const total    = questions.length;
-  const studied  = Object.keys(progress).length;
-  const mastered = Object.values(progress).filter(p => p.level >= REVIEW_INTERVALS.length).length;
-  const dueToday = questions.filter(q => isDue(progress[q.id]) && progress[q.id]?.level > 0).length;
-  const newCount = questions.filter(q => !progress[q.id] || progress[q.id].level === 0).length;
+  const usable   = questions.filter(q => q.answer && q.choices && q.choices.A);
+  const total    = usable.length;
+  const studied  = usable.filter(q => progress[q.id]?.level > 0).length;
+  const mastered = usable.filter(q => (progress[q.id]?.level ?? 0) >= REVIEW_INTERVALS.length).length;
+  const dueToday = usable.filter(q => isDue(progress[q.id]) && progress[q.id]?.level > 0).length;
+  const newCount = usable.filter(q => !progress[q.id] || progress[q.id].level === 0).length;
 
   const levelCounts = new Array(REVIEW_INTERVALS.length + 1).fill(0);
-  questions.forEach(q => {
+  usable.forEach(q => {
     const lv = progress[q.id]?.level ?? 0;
     levelCounts[Math.min(lv, REVIEW_INTERVALS.length)]++;
   });
