@@ -459,7 +459,8 @@
     <button class="nav-btn" id="nav-stats" onclick="showView('stats')">
       統計 <span class="badge" id="review-badge" style="display:none">0</span>
     </button>
-    <div class="user-chip" onclick="openUserModal()" id="user-chip">👤 ゲスト</div>
+    <button class="nav-btn" id="nav-settings" onclick="showView('settings')">⚙️設定</button>
+    <div class="user-chip" onclick="showView('settings')" id="user-chip">👤</div>
   </div>
 </nav>
 
@@ -900,14 +901,12 @@ function renderDashboard() {
 
   const dailySection = todayDone >= DAILY_TARGET
     ? `<div class="daily-hero">
-        <div class="daily-hero-sub">今日のルーティン</div>
         <div class="daily-hero-title">今日の100問</div>
         <div class="daily-hero-bar"><div class="daily-hero-bar-fill" style="width:100%"></div></div>
         <div class="daily-hero-cnt">${todayDone}問 完了（${todayPct}%）</div>
         <div class="daily-complete">🎉 本日の100問達成！お疲れ様でした！</div>
       </div>`
     : `<div class="daily-hero">
-        <div class="daily-hero-sub">今日のルーティン</div>
         <div class="daily-hero-title">今日の100問</div>
         <div class="daily-hero-bar"><div class="daily-hero-bar-fill" style="width:${todayPct}%"></div></div>
         <div class="daily-hero-cnt">${todayDone} / ${DAILY_TARGET}問 完了（${todayPct}%）</div>
@@ -917,12 +916,6 @@ function renderDashboard() {
       </div>`;
 
   return `${demoWarn}${dailySection}
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-num s-blue">${s.total}</div><div class="stat-label">総問題数</div></div>
-      <div class="stat-card"><div class="stat-num s-amber">${s.dueToday}</div><div class="stat-label">今日の復習</div></div>
-      <div class="stat-card"><div class="stat-num s-purple">${s.newCount}</div><div class="stat-label">未学習</div></div>
-      <div class="stat-card"><div class="stat-num s-green">${s.mastered}</div><div class="stat-label">定着済み</div></div>
-    </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-title">全体進捗</div>
       <div style="font-size:1.8rem;font-weight:800;color:var(--blue)">${pct}%</div>
@@ -942,8 +935,8 @@ function renderDashboard() {
         <button class="action-btn" onclick="startSession('review')" ${s.dueToday===0?'disabled':''}>
           <span class="icon">🔄</span><span>復習</span><span class="sub">${s.dueToday}問</span>
         </button>
-        <button class="action-btn" onclick="showView('study-menu')">
-          <span class="icon">⚙️</span><span>詳細設定</span><span class="sub">ジャンル選択など</span>
+        <button class="action-btn" onclick="showView('settings')">
+          <span class="icon">⚙️</span><span>設定</span><span class="sub">ログアウトなど</span>
         </button>
       </div>
     </div>`;
@@ -1125,29 +1118,30 @@ function renderStats() {
   const acc = s.todayTotal ? Math.round(s.todayCorrect/s.todayTotal*100) : 0;
   const pct = s.total ? Math.round(s.mastered/s.total*100) : 0;
 
-  // カレンダー（直近35日 → 5週分）
-  const history    = loadHistory();
-  const countByDay = {};
+  // カレンダー（直近35日 → 正解数ベースで色分け）
+  const history      = loadHistory();
+  const correctByDay = {}, totalByDay = {};
   history.forEach(h => {
     const d = new Date(h.ts); d.setHours(0,0,0,0);
     const k = d.getTime();
-    countByDay[k] = (countByDay[k]||0) + 1;
+    totalByDay[k] = (totalByDay[k]||0) + 1;
+    if (h.correct) correctByDay[k] = (correctByDay[k]||0) + 1;
   });
   const today = new Date(); today.setHours(0,0,0,0);
-  // 直近35日
   const cells = [];
   for (let i = 34; i >= 0; i--) {
     const d = new Date(today.getTime() - i*DAY_MS);
     d.setHours(0,0,0,0);
-    const cnt     = countByDay[d.getTime()] || 0;
-    const isToday = d.getTime() === today.getTime();
-    const cls     = cnt===0?'':cnt<=5?'s1':cnt<=15?'s2':cnt<=30?'s3':cnt<=50?'s4':'s5';
-    const day     = d.getDate();
-    const mm      = d.getMonth()+1;
-    const label   = day===1 || i===34 ? `${mm}/${day}` : String(day);
-    cells.push(`<div class="cal-day${cls?' '+cls:''}${isToday?' today':''}" title="${mm}/${day} ${cnt}問">
+    const correct  = correctByDay[d.getTime()] || 0;
+    const total    = totalByDay[d.getTime()]   || 0;
+    const isToday  = d.getTime() === today.getTime();
+    const cls      = correct===0?'':correct<25?'s1':correct<50?'s2':correct<75?'s3':correct<90?'s4':'s5';
+    const day      = d.getDate();
+    const mm       = d.getMonth()+1;
+    const label    = day===1 || i===34 ? `${mm}/${day}` : String(day);
+    cells.push(`<div class="cal-day${cls?' '+cls:''}${isToday?' today':''}" title="${mm}/${day} 正解:${correct}/${total}">
       <span class="cal-day-num">${label}</span>
-      ${cnt>0?`<span class="cal-cnt">${cnt}</span>`:''}
+      ${correct>0?`<span class="cal-cnt">${correct}</span>`:''}
     </div>`);
   }
 
@@ -1176,23 +1170,42 @@ function renderStats() {
       </div>
     </div>
     <div class="card">
-      <div class="card-title">学習カレンダー（直近35日）</div>
-      <div style="display:flex;gap:6px;font-size:.7rem;color:var(--muted);margin-bottom:8px;flex-wrap:wrap">
-        <span>□ 未学習</span>
-        <span style="color:#1e40af">■ 1-5問</span>
-        <span style="color:#1d4ed8">■ 6-15問</span>
-        <span style="color:#1d4ed8;font-weight:700">■ 16問以上</span>
+      <div class="card-title">学習カレンダー（直近35日 — 正解数）</div>
+      <div style="display:flex;gap:8px;font-size:.7rem;color:var(--muted);margin-bottom:8px;flex-wrap:wrap">
+        <span>□ 0問</span>
+        <span style="color:#1e40af">■ 1〜24</span>
+        <span style="color:#2563eb">■ 25〜49</span>
+        <span style="color:#1d4ed8">■ 50〜74</span>
+        <span style="color:#1e3a8a">■ 75〜89</span>
+        <span style="color:#1e3a8a;font-weight:800">■ 90+</span>
       </div>
       <div class="calendar-grid">${cells.join('')}</div>
     </div>
+    ${(() => {
+      const genreHtml = GENRE_CATEGORIES.map(cat => {
+        const catQs = usableQuestions(cat.id);
+        let cor = 0, tot = 0;
+        catQs.forEach(q => { const p=progress[q.id]; if(p){ cor+=(p.correctCount||0); tot+=(p.correctCount||0)+(p.wrongCount||0); } });
+        if (!tot) return '';
+        const acc = Math.round(cor/tot*100);
+        const col = acc>=80?'var(--green)':acc>=60?'var(--amber)':'var(--red)';
+        return `<div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:.88rem;font-weight:600">${cat.emoji} ${cat.label}
+              <span style="color:var(--muted);font-weight:400;font-size:.78rem"> ${catQs.length}問</span>
+            </span>
+            <span style="font-weight:800;color:${col}">${acc}%</span>
+          </div>
+          <div class="progress-bar" style="height:7px">
+            <div class="progress-fill" style="width:${acc}%;background:${col}"></div>
+          </div>
+        </div>`;
+      }).filter(Boolean).join('');
+      return genreHtml ? `<div class="card"><div class="card-title">ジャンル別正答率</div>${genreHtml}</div>` : '';
+    })()}
     <div class="card">
       <div class="card-title">次回復習スケジュール</div>
       ${upcomingHtml}
-    </div>
-    <div style="text-align:center;margin-top:16px;display:flex;flex-direction:column;gap:10px;align-items:center">
-      <button class="btn btn-outline" style="font-size:.8rem" onclick="refreshQuestions()">問題データを再取得</button>
-      <button class="btn btn-outline" style="font-size:.8rem;color:var(--red);border-color:var(--red)"
-        onclick="if(confirm('学習進捗・履歴をすべてリセットしますか？'))resetAll()">進捗をリセット</button>
     </div>`;
 }
 
@@ -1229,7 +1242,7 @@ function renderLevelBarsById(id, stats) {
 // ═══════════════════════════════════════════════════════════════
 function showView(name) {
   const view = document.getElementById('view');
-  ['dash','study','stats'].forEach(id => document.getElementById('nav-'+id)?.classList.remove('active'));
+  ['dash','study','stats','settings'].forEach(id => document.getElementById('nav-'+id)?.classList.remove('active'));
   if (name === 'dashboard') {
     document.getElementById('nav-dash').classList.add('active');
     view.innerHTML = renderDashboard();
@@ -1241,8 +1254,112 @@ function showView(name) {
   } else if (name === 'study-menu') {
     document.getElementById('nav-study').classList.add('active');
     view.innerHTML = renderStudyMenu();
+  } else if (name === 'settings') {
+    document.getElementById('nav-settings').classList.add('active');
+    view.innerHTML = renderSettings();
+    renderSettingsUserList();
   }
   updateBadge();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ビュー：設定
+// ═══════════════════════════════════════════════════════════════
+function renderSettings() {
+  const uid     = getCurrentUserId();
+  const users   = loadUsers();
+  const user    = users.find(u => u.id === uid);
+  const studied = Object.keys(progress).length;
+  const mastered= Object.values(progress).filter(p => p.level >= REVIEW_INTERVALS.length).length;
+  return `
+    <div class="card">
+      <div class="card-title">アカウント</div>
+      <div style="display:flex;align-items:center;gap:16px;padding:8px 0 16px">
+        <div class="user-avatar" style="width:52px;height:52px;font-size:1.3rem;flex-shrink:0">
+          ${user ? user.name.charAt(0).toUpperCase() : '?'}
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:1.1rem">${escHtml(user?.name || '不明')}</div>
+          <div style="font-size:.82rem;color:var(--muted)">学習済み ${studied}問 ／ 定着 ${mastered}問</div>
+        </div>
+      </div>
+      <button onclick="logout()"
+        style="width:100%;padding:13px;background:var(--red-l);color:var(--red);border:none;
+               border-radius:10px;font-weight:700;font-size:.95rem;cursor:pointer">
+        ログアウト（ユーザー切替）
+      </button>
+    </div>
+    <div class="card">
+      <div class="card-title">ユーザー管理</div>
+      <div id="settings-user-list"></div>
+      <hr class="divider">
+      <div style="font-size:.88rem;font-weight:700;margin-bottom:8px">新しいユーザーを追加</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="settings-new-name" placeholder="ユーザー名" maxlength="20"
+          style="flex:1;padding:10px 14px;border:2px solid var(--border);border-radius:8px;font-size:.9rem"
+          onkeydown="if(event.key==='Enter')settingsCreateUser()">
+        <button class="btn btn-primary" onclick="settingsCreateUser()">追加</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">データ管理</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-outline" onclick="refreshQuestions()">🔄 問題データを再取得</button>
+        <button class="btn btn-outline" onclick="openImport()">📋 JSONを直接貼り付け</button>
+        <button class="btn btn-outline" style="color:var(--red);border-color:var(--red)"
+          onclick="if(confirm('学習進捗・履歴をすべてリセットしますか？'))resetAll()">🗑️ 進捗をリセット</button>
+      </div>
+    </div>`;
+}
+
+function renderSettingsUserList() {
+  const users  = loadUsers();
+  const curUid = getCurrentUserId();
+  const el     = document.getElementById('settings-user-list');
+  if (!el) return;
+  if (!users.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:.9rem;margin-bottom:12px">ユーザーがいません</div>';
+    return;
+  }
+  el.innerHTML = '<div class="user-list">' + users.map(u => {
+    const prog    = (() => { try { return JSON.parse(localStorage.getItem(userStorageKey(u.id))||'{}'); } catch { return {}; } })();
+    const studied = Object.keys(prog).length;
+    const mastered= Object.values(prog).filter(p => p.level >= REVIEW_INTERVALS.length).length;
+    const isCur   = u.id === curUid;
+    return `<div class="user-row${isCur?' current':''}">
+      <div class="user-avatar">${u.name.charAt(0).toUpperCase()}</div>
+      <div style="flex:1">
+        <div class="user-row-name">${escHtml(u.name)}${isCur?' <span style="font-size:.75rem;color:var(--blue)">(現在)</span>':''}</div>
+        <div class="user-row-stats">学習済み ${studied}問 ／ 定着 ${mastered}問</div>
+      </div>
+      ${!isCur ? `<button class="btn btn-outline" style="padding:6px 12px;font-size:.78rem" onclick="settingsDeleteUser('${u.id}')">削除</button>` : ''}
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function settingsCreateUser() {
+  const inp  = document.getElementById('settings-new-name');
+  const name = inp.value.trim();
+  if (!name) { alert('名前を入力してください'); return; }
+  const users = loadUsers();
+  const id    = 'u_' + Date.now();
+  users.push({ id, name, createdAt: Date.now() });
+  saveUsers(users);
+  authSelect(id);
+}
+
+function settingsDeleteUser(uid) {
+  if (!confirm('このユーザーの進捗データをすべて削除しますか？')) return;
+  const users = loadUsers().filter(u => u.id !== uid);
+  saveUsers(users);
+  localStorage.removeItem(userStorageKey(uid));
+  localStorage.removeItem(userHistoryKey(uid));
+  renderSettingsUserList();
+}
+
+function logout() {
+  localStorage.removeItem(CUR_USER_KEY);
+  showAuthScreen();
 }
 
 function updateBadge() {
@@ -1279,14 +1396,7 @@ function escHtml(s) {
   document.getElementById('view').innerHTML = `
     <div class="center-box"><div class="spinner"></div><div style="color:var(--muted)">読み込み中...</div></div>`;
   await loadQuestions();
-  if (!isAuthenticated()) {
-    showAuthScreen();
-    return;
-  }
-  progress = loadProgress();
-  updateNavUser();
-  showView('dashboard');
-  updateBadge();
+  showAuthScreen();
 })();
 </script>
 </body>
