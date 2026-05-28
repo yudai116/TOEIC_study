@@ -401,10 +401,6 @@
       border-radius: var(--radius); padding: 28px 24px; margin-bottom: 16px;
       color: #fff; position: relative; overflow: hidden;
     }
-    .daily-hero::before {
-      content: '📅'; position: absolute; right: 16px; bottom: 10px;
-      font-size: 5rem; opacity: .1; pointer-events: none; line-height: 1;
-    }
     .daily-hero-sub {
       font-size: .72rem; font-weight: 700; text-transform: uppercase;
       letter-spacing: .1em; opacity: .75; margin-bottom: 4px;
@@ -444,7 +440,9 @@
     </div>
     <div class="auth-sec-title">新しいユーザーを作成</div>
     <input type="text" id="auth-name-input" class="auth-input"
-      placeholder="ユーザー名を入力（例：山田太郎）" maxlength="20"
+      placeholder="ユーザー名を入力（例：山田太郎）" maxlength="20">
+    <input type="password" id="auth-pw-new" class="auth-input"
+      placeholder="パスワード" maxlength="30"
       onkeydown="if(event.key==='Enter')authCreate()">
     <button class="auth-btn" onclick="authCreate()">作成してスタート →</button>
   </div>
@@ -629,6 +627,10 @@ function isAuthenticated() {
   return !!users.find(u => u.id === uid);
 }
 
+function hashPw(pw) {
+  try { return btoa(unescape(encodeURIComponent(pw))); } catch { return btoa(pw); }
+}
+
 function showAuthScreen() {
   const users  = loadUsers();
   document.getElementById('auth-screen').style.display = 'flex';
@@ -640,18 +642,63 @@ function showAuthScreen() {
       const prog     = (() => { try { return JSON.parse(localStorage.getItem(userStorageKey(u.id))||'{}'); } catch { return {}; } })();
       const studied  = Object.keys(prog).length;
       const mastered = Object.values(prog).filter(p => p.level >= REVIEW_INTERVALS.length).length;
-      return `<button class="auth-ubtn" onclick="authSelect('${u.id}')">
-        <div class="auth-uavatar">${u.name.charAt(0).toUpperCase()}</div>
-        <div>
-          <div class="auth-uname">${escHtml(u.name)}</div>
-          <div class="auth-ustats">学習済み ${studied}問 ／ 定着 ${mastered}問</div>
+      return `<div id="auth-row-${u.id}">
+        <button class="auth-ubtn" onclick="expandAuthUser('${u.id}')">
+          <div class="auth-uavatar">${u.name.charAt(0).toUpperCase()}</div>
+          <div style="flex:1">
+            <div class="auth-uname">${escHtml(u.name)}</div>
+            <div class="auth-ustats">学習済み ${studied}問 ／ 定着 ${mastered}問</div>
+          </div>
+          <span style="color:var(--muted);font-size:1.1rem">›</span>
+        </button>
+        <div id="auth-pw-${u.id}" style="display:none;padding:10px 0 4px">
+          <input type="password" id="auth-pw-inp-${u.id}" class="auth-input"
+            placeholder="パスワード" style="margin-bottom:6px"
+            onkeydown="if(event.key==='Enter')authLogin('${u.id}')">
+          <div id="auth-pw-err-${u.id}" style="color:var(--red);font-size:.82rem;margin-bottom:6px;display:none">
+            パスワードが違います
+          </div>
+          <button class="auth-btn" onclick="authLogin('${u.id}')">ログイン</button>
         </div>
-      </button>`;
+      </div>`;
     }).join('');
   } else {
     existSec.style.display = 'none';
   }
-  setTimeout(() => document.getElementById('auth-name-input')?.focus(), 120);
+  const nameInp = document.getElementById('auth-name-input');
+  if (nameInp) { nameInp.value = ''; }
+  const pwInp = document.getElementById('auth-pw-new');
+  if (pwInp) pwInp.value = '';
+  setTimeout(() => nameInp?.focus(), 120);
+}
+
+function expandAuthUser(uid) {
+  const users = loadUsers();
+  users.forEach(u => {
+    const el = document.getElementById('auth-pw-'+u.id);
+    if (el) el.style.display = 'none';
+  });
+  const pwEl = document.getElementById('auth-pw-'+uid);
+  if (pwEl) {
+    pwEl.style.display = 'block';
+    setTimeout(() => document.getElementById('auth-pw-inp-'+uid)?.focus(), 50);
+  }
+}
+
+function authLogin(uid) {
+  const users = loadUsers();
+  const user  = users.find(u => u.id === uid);
+  if (!user) return;
+  const inp    = document.getElementById('auth-pw-inp-'+uid);
+  const errEl  = document.getElementById('auth-pw-err-'+uid);
+  const entered = inp ? inp.value : '';
+  if (user.pw && hashPw(entered) !== user.pw) {
+    errEl.style.display = 'block';
+    if (inp) { inp.value = ''; inp.focus(); }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+  authSelect(uid);
 }
 
 function hideAuthScreen() {
@@ -668,17 +715,21 @@ function authSelect(uid) {
 }
 
 function authCreate() {
-  const inp  = document.getElementById('auth-name-input');
-  const name = inp.value.trim();
+  const inp   = document.getElementById('auth-name-input');
+  const pwInp = document.getElementById('auth-pw-new');
+  const name  = inp.value.trim();
+  const pw    = pwInp ? pwInp.value : '';
   if (!name) {
     inp.style.borderColor = 'var(--red)';
     inp.focus();
     setTimeout(() => inp.style.borderColor = '', 1200);
     return;
   }
-  const users = loadUsers();
-  const id    = 'u_' + Date.now();
-  users.push({ id, name, createdAt: Date.now() });
+  const users  = loadUsers();
+  const id     = 'u_' + Date.now();
+  const newUser = { id, name, createdAt: Date.now() };
+  if (pw) newUser.pw = hashPw(pw);
+  users.push(newUser);
   saveUsers(users);
   authSelect(id);
 }
@@ -1181,28 +1232,29 @@ function renderStats() {
       </div>
       <div class="calendar-grid">${cells.join('')}</div>
     </div>
-    ${(() => {
-      const genreHtml = GENRE_CATEGORIES.map(cat => {
+    <div class="card">
+      <div class="card-title">ジャンル別正答率</div>
+      ${GENRE_CATEGORIES.map(cat => {
         const catQs = usableQuestions(cat.id);
         let cor = 0, tot = 0;
         catQs.forEach(q => { const p=progress[q.id]; if(p){ cor+=(p.correctCount||0); tot+=(p.correctCount||0)+(p.wrongCount||0); } });
-        if (!tot) return '';
-        const acc = Math.round(cor/tot*100);
-        const col = acc>=80?'var(--green)':acc>=60?'var(--amber)':'var(--red)';
+        const acc = tot ? Math.round(cor/tot*100) : 0;
+        const h   = Math.round(acc * 1.2);
+        const col = tot ? `hsl(${h},70%,45%)` : 'var(--muted)';
+        const lbl = tot ? `${acc}%` : '未';
         return `<div style="margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <span style="font-size:.88rem;font-weight:600">${cat.emoji} ${cat.label}
               <span style="color:var(--muted);font-weight:400;font-size:.78rem"> ${catQs.length}問</span>
             </span>
-            <span style="font-weight:800;color:${col}">${acc}%</span>
+            <span style="font-weight:800;color:${col}">${lbl}</span>
           </div>
           <div class="progress-bar" style="height:7px">
-            <div class="progress-fill" style="width:${acc}%;background:${col}"></div>
+            <div class="progress-fill" style="width:${acc}%;background:${col};transition:width .4s,background .4s"></div>
           </div>
         </div>`;
-      }).filter(Boolean).join('');
-      return genreHtml ? `<div class="card"><div class="card-title">ジャンル別正答率</div>${genreHtml}</div>` : '';
-    })()}
+      }).join('')}
+    </div>
     <div class="card">
       <div class="card-title">次回復習スケジュール</div>
       ${upcomingHtml}
