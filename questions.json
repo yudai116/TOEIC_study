@@ -12270,6 +12270,21 @@
     "source_url": "https://zitanstudy.com/?page_id=1969"
   },
   {
+    "id": 819,
+    "question": "Homes at Lester Lake is the new condominium community ------- an hour's drive from the city, where more couples are enjoying a recreation-filled retirement.",
+    "choices": {
+      "A": "as little as",
+      "B": "no less than",
+      "C": "less than",
+      "D": "the least"
+    },
+    "answer": "C",
+    "translation": "レスター湖の住宅は新しい分譲地域で、街から車で1時間以内です。大勢のご夫婦が憩いに満ちた老後が楽しめます。",
+    "explanation": "比較を表す語句で間違いやすい。選択肢それぞれの意味を考えよう。(A)のas little asは「量」を表すので、ここでは不適切。(B)のno less thanは「…しか、…ほど多くの、…に劣らず」という意味で、「近い」という利点を訴えたい意味にはならない。(C)のless thanが「…以内で」という意味で適切である。(D)のthe leastは文法的にこの空所には当てはまらない。",
+    "vocabulary": "condominium「分譲アパート」\ncommunity「地域」\nrecreation「娯楽」\nretirement「定年退職」",
+    "source_url": "https://zitanstudy.com/?page_id=1971"
+  },
+  {
     "id": 820,
     "question": "Call Insurance Trust at 1(888)myTRUST and get a ——- to see how much you can save on car insurance by switching your policy to Insurance Trust.",
     "choices": {
