@@ -342,9 +342,113 @@
       background: #1e293b; color: #94a3b8; border-radius: 8px;
       padding: 12px 16px; font-family: monospace; font-size: .85rem; margin: 12px 0; text-align: left;
     }
+
+    /* ── 認証画面 ── */
+    #auth-screen {
+      position: fixed; inset: 0; z-index: 300;
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #0ea5e9 100%);
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .auth-card {
+      background: #fff; border-radius: 20px; padding: 36px 28px;
+      width: 100%; max-width: 400px; box-shadow: 0 24px 64px rgba(0,0,0,.35);
+    }
+    .auth-logo {
+      font-size: 1.9rem; font-weight: 900; color: var(--blue);
+      text-align: center; margin-bottom: 4px;
+    }
+    .auth-tagline { font-size: .88rem; color: var(--muted); text-align: center; margin-bottom: 28px; }
+    .auth-sec-title {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted); margin-bottom: 8px;
+    }
+    .auth-ulist { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .auth-ubtn {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+      border: 2px solid var(--border); border-radius: 12px; cursor: pointer;
+      background: var(--card); text-align: left; width: 100%;
+      transition: border-color .15s, background .15s;
+    }
+    .auth-ubtn:hover { border-color: var(--blue); background: var(--blue-l); }
+    .auth-uavatar {
+      width: 38px; height: 38px; border-radius: 50%; background: var(--blue);
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem; flex-shrink: 0;
+    }
+    .auth-uname { font-weight: 700; font-size: .9rem; }
+    .auth-ustats { font-size: .72rem; color: var(--muted); }
+    .auth-or {
+      display: flex; align-items: center; gap: 10px; margin: 16px 0;
+      color: var(--muted); font-size: .8rem;
+    }
+    .auth-or::before, .auth-or::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
+    .auth-input {
+      width: 100%; padding: 13px 16px; border: 2px solid var(--border);
+      border-radius: 10px; font-size: .95rem; margin-bottom: 10px;
+      transition: border-color .15s;
+    }
+    .auth-input:focus { outline: none; border-color: var(--blue); }
+    .auth-btn {
+      width: 100%; padding: 14px; background: var(--blue); color: #fff;
+      border: none; border-radius: 10px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .auth-btn:hover { opacity: .88; }
+
+    /* ── 今日の100問ヒーロー ── */
+    .daily-hero {
+      background: linear-gradient(135deg, #1e40af, #2563eb 60%, #0ea5e9);
+      border-radius: var(--radius); padding: 28px 24px; margin-bottom: 16px;
+      color: #fff; position: relative; overflow: hidden;
+    }
+    .daily-hero::before {
+      content: '📅'; position: absolute; right: 16px; bottom: 10px;
+      font-size: 5rem; opacity: .1; pointer-events: none; line-height: 1;
+    }
+    .daily-hero-sub {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; opacity: .75; margin-bottom: 4px;
+    }
+    .daily-hero-title { font-size: 1.75rem; font-weight: 900; margin-bottom: 16px; line-height: 1.2; }
+    .daily-hero-bar {
+      background: rgba(255,255,255,.25); border-radius: 999px;
+      height: 10px; margin-bottom: 8px; overflow: hidden;
+    }
+    .daily-hero-bar-fill { height: 100%; background: #fff; border-radius: 999px; transition: width .5s ease; }
+    .daily-hero-cnt { font-size: .88rem; opacity: .88; margin-bottom: 18px; font-weight: 500; }
+    .daily-hero-action {
+      display: block; width: 100%; padding: 15px;
+      background: rgba(255,255,255,.93); color: #1e40af;
+      border: none; border-radius: 10px; font-size: 1.05rem;
+      font-weight: 800; cursor: pointer; transition: background .15s, transform .1s;
+    }
+    .daily-hero-action:hover { background: #fff; transform: translateY(-1px); }
+    .daily-complete {
+      background: rgba(255,255,255,.15); border: 2px solid rgba(255,255,255,.4);
+      border-radius: 10px; padding: 14px 16px;
+      font-weight: 700; text-align: center; font-size: .98rem;
+    }
   </style>
 </head>
 <body>
+
+<!-- 認証画面 -->
+<div id="auth-screen" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">📚 TOEIC Grammar</div>
+    <div class="auth-tagline">毎日100問で文法力を定着させよう</div>
+    <div id="auth-exist-sec" style="display:none">
+      <div class="auth-sec-title">ユーザーを選択</div>
+      <div id="auth-ulist" class="auth-ulist"></div>
+      <div class="auth-or">または</div>
+    </div>
+    <div class="auth-sec-title">新しいユーザーを作成</div>
+    <input type="text" id="auth-name-input" class="auth-input"
+      placeholder="ユーザー名を入力（例：山田太郎）" maxlength="20"
+      onkeydown="if(event.key==='Enter')authCreate()">
+    <button class="auth-btn" onclick="authCreate()">作成してスタート →</button>
+  </div>
+</div>
 
 <!-- ナビゲーション -->
 <nav class="nav">
@@ -513,6 +617,69 @@ function deleteUser(uid) {
   localStorage.removeItem(userStorageKey(uid));
   localStorage.removeItem(userHistoryKey(uid));
   renderUserList();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  認証
+// ═══════════════════════════════════════════════════════════════
+function isAuthenticated() {
+  const uid   = getCurrentUserId();
+  const users = loadUsers();
+  return !!users.find(u => u.id === uid);
+}
+
+function showAuthScreen() {
+  const users  = loadUsers();
+  document.getElementById('auth-screen').style.display = 'flex';
+  const existSec  = document.getElementById('auth-exist-sec');
+  const authUlist = document.getElementById('auth-ulist');
+  if (users.length) {
+    existSec.style.display = 'block';
+    authUlist.innerHTML = users.map(u => {
+      const prog     = (() => { try { return JSON.parse(localStorage.getItem(userStorageKey(u.id))||'{}'); } catch { return {}; } })();
+      const studied  = Object.keys(prog).length;
+      const mastered = Object.values(prog).filter(p => p.level >= REVIEW_INTERVALS.length).length;
+      return `<button class="auth-ubtn" onclick="authSelect('${u.id}')">
+        <div class="auth-uavatar">${u.name.charAt(0).toUpperCase()}</div>
+        <div>
+          <div class="auth-uname">${escHtml(u.name)}</div>
+          <div class="auth-ustats">学習済み ${studied}問 ／ 定着 ${mastered}問</div>
+        </div>
+      </button>`;
+    }).join('');
+  } else {
+    existSec.style.display = 'none';
+  }
+  setTimeout(() => document.getElementById('auth-name-input')?.focus(), 120);
+}
+
+function hideAuthScreen() {
+  document.getElementById('auth-screen').style.display = 'none';
+}
+
+function authSelect(uid) {
+  setCurrentUserId(uid);
+  progress = loadProgress();
+  hideAuthScreen();
+  updateNavUser();
+  showView('dashboard');
+  updateBadge();
+}
+
+function authCreate() {
+  const inp  = document.getElementById('auth-name-input');
+  const name = inp.value.trim();
+  if (!name) {
+    inp.style.borderColor = 'var(--red)';
+    inp.focus();
+    setTimeout(() => inp.style.borderColor = '', 1200);
+    return;
+  }
+  const users = loadUsers();
+  const id    = 'u_' + Date.now();
+  users.push({ id, name, createdAt: Date.now() });
+  saveUsers(users);
+  authSelect(id);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -708,17 +875,21 @@ function calcStats(genreId) {
   return { total, studied, mastered, dueToday, newCount, levelCounts, todayCorrect, todayTotal };
 }
 
+function getTodayStats() {
+  const history    = loadHistory();
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const todayAns   = history.filter(h => h.ts >= todayStart.getTime());
+  return { done: todayAns.length, correct: todayAns.filter(h => h.correct).length };
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  ビュー：ダッシュボード
 // ═══════════════════════════════════════════════════════════════
 function renderDashboard() {
-  const s   = calcStats();
-  const pct = s.total ? Math.round(s.mastered/s.total*100) : 0;
-  const reviewAlert = s.dueToday > 0
-    ? `<div class="alert"><span class="alert-icon">🔔</span>
-        <span><b>${s.dueToday}問</b>の復習が今日の予定です。</span></div>`
-    : (s.studied > 0 ? `<div class="alert alert-success"><span class="alert-icon">✅</span>
-        <span>今日の復習はすべて完了しています。</span></div>` : '');
+  const s              = calcStats();
+  const pct            = s.total ? Math.round(s.mastered/s.total*100) : 0;
+  const { done: todayDone } = getTodayStats();
+  const todayPct       = Math.min(100, Math.round(todayDone / DAILY_TARGET * 100));
   const demoWarn = usingDemo
     ? `<div class="alert" style="background:#eff6ff;border-color:#bfdbfe;margin-bottom:16px">
         <span class="alert-icon">ℹ️</span>
@@ -727,7 +898,25 @@ function renderDashboard() {
           <button class="btn btn-outline" style="margin-top:10px;padding:6px 14px;font-size:.82rem" onclick="openImport()">JSONを直接貼り付け</button>
         </div></div>` : '';
 
-  return `${demoWarn}${reviewAlert}
+  const dailySection = todayDone >= DAILY_TARGET
+    ? `<div class="daily-hero">
+        <div class="daily-hero-sub">今日のルーティン</div>
+        <div class="daily-hero-title">今日の100問</div>
+        <div class="daily-hero-bar"><div class="daily-hero-bar-fill" style="width:100%"></div></div>
+        <div class="daily-hero-cnt">${todayDone}問 完了（${todayPct}%）</div>
+        <div class="daily-complete">🎉 本日の100問達成！お疲れ様でした！</div>
+      </div>`
+    : `<div class="daily-hero">
+        <div class="daily-hero-sub">今日のルーティン</div>
+        <div class="daily-hero-title">今日の100問</div>
+        <div class="daily-hero-bar"><div class="daily-hero-bar-fill" style="width:${todayPct}%"></div></div>
+        <div class="daily-hero-cnt">${todayDone} / ${DAILY_TARGET}問 完了（${todayPct}%）</div>
+        <button class="daily-hero-action" onclick="startSession('daily')">
+          ${todayDone > 0 ? '▶ 続きから学習する' : '▶ 今日の学習を始める'}
+        </button>
+      </div>`;
+
+  return `${demoWarn}${dailySection}
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-num s-blue">${s.total}</div><div class="stat-label">総問題数</div></div>
       <div class="stat-card"><div class="stat-num s-amber">${s.dueToday}</div><div class="stat-label">今日の復習</div></div>
@@ -748,12 +937,8 @@ function renderDashboard() {
       </div>
     </div>
     <div class="card">
-      <div class="card-title">クイックスタート</div>
+      <div class="card-title">その他の学習</div>
       <div class="action-grid" style="margin-bottom:0">
-        <button class="action-btn" onclick="startSession('daily')">
-          <span class="icon">📅</span><span>今日の100問</span>
-          <span class="sub">ルーティン学習</span>
-        </button>
         <button class="action-btn" onclick="startSession('review')" ${s.dueToday===0?'disabled':''}>
           <span class="icon">🔄</span><span>復習</span><span class="sub">${s.dueToday}問</span>
         </button>
@@ -1093,8 +1278,11 @@ function escHtml(s) {
 (async () => {
   document.getElementById('view').innerHTML = `
     <div class="center-box"><div class="spinner"></div><div style="color:var(--muted)">読み込み中...</div></div>`;
-  ensureDefaultUser();
   await loadQuestions();
+  if (!isAuthenticated()) {
+    showAuthScreen();
+    return;
+  }
   progress = loadProgress();
   updateNavUser();
   showView('dashboard');
