@@ -13968,10 +13968,10 @@
     "id": 933,
     "question": "The trade show is our biggest event of the season, so we need to think ——- what the message of the presentation there will be.",
     "choices": {
-      "A": "",
-      "B": "caring (C) careful (D) carefully",
-      "C": "",
-      "D": ""
+      "A": "care",
+      "B": "caring",
+      "C": "careful",
+      "D": "carefully"
     },
     "answer": "D",
     "translation": "",
