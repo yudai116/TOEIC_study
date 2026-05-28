@@ -5,10 +5,9 @@
 // 4. When done dialog appears, JSON is in clipboard
 // 5. Open GitHub -> questions.json -> edit -> select all -> paste -> Commit
 
-const BASE  = 'https://zitanstudy.com';
-const DELAY = 700;
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const wv    = new WebView();
+const BASE = 'https://zitanstudy.com';
+const wv   = new WebView();
+// wv.loadURL() already waits for the page to fully load, providing natural pacing.
 
 // These functions are stringified via toString() and run inside the WebView.
 // All non-ASCII in regex uses \uXXXX escapes (pure ASCII source code).
@@ -92,7 +91,6 @@ var PARSER_JS  = '(' + _parseQuestion.toString()    + ')()';
 // --- Step 1: index pages ---
 console.log('TOEIC Scraper started');
 await wv.loadURL(BASE + '/?page_id=206');
-await sleep(DELAY);
 
 var rawIdx  = await wv.evaluateJavaScript(GET_IDX_JS);
 var idxUrls = Array.from(new Set(
@@ -104,7 +102,6 @@ console.log('Index pages: ' + idxUrls.length);
 var qUrls = [], seen = new Set();
 for (var ii = 0; ii < idxUrls.length; ii++) {
   await wv.loadURL(idxUrls[ii]);
-  await sleep(DELAY);
   var links = JSON.parse(await wv.evaluateJavaScript(GET_Q_JS));
   links.forEach(function(h) {
     if (!seen.has(h)) { qUrls.push(h); seen.add(h); }
@@ -117,7 +114,6 @@ console.log('Total question pages: ' + qUrls.length);
 var questions = [];
 for (var i = 0; i < qUrls.length; i++) {
   await wv.loadURL(qUrls[i]);
-  await sleep(DELAY);
   var qJson = null;
   try { qJson = await wv.evaluateJavaScript(PARSER_JS); } catch(e) {}
   if (qJson && qJson !== 'null') questions.push(JSON.parse(qJson));
