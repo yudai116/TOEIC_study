@@ -2,8 +2,9 @@
 // 1. Install "Scriptable" from the App Store (free)
 // 2. Tap "+" -> paste this entire script -> save as "TOEIC Scraper"
 // 3. Tap play (keep screen on, use charger, wait 30-60 min)
-// 4. When done dialog appears, JSON is in clipboard
-// 5. Open GitHub -> questions.json -> edit -> select all -> paste -> Commit
+// 4. When done dialog appears, JSON is saved to Files app
+// 5. Files app -> On My iPhone -> Scriptable -> toeic-questions.json
+// 6. Open GitHub -> questions.json -> edit -> select all -> paste -> Commit
 
 const BASE = 'https://zitanstudy.com';
 const wv   = new WebView();
@@ -25,7 +26,7 @@ function _getQuestionLinks() {
   return JSON.stringify(
     Array.from(document.querySelectorAll('a[href*="page_id="]'))
       .filter(function(a) {
-        return (/\u7b2c?\s*\d+\s*\u554f|\d+/).test(a.textContent);
+        return (/第?\s*\d+\s*問|\d+/).test(a.textContent);
       })
       .map(function(a) { return a.href; })
   );
@@ -38,13 +39,13 @@ function _parseQuestion() {
   // 【=[  】=]  解=解  説=説
   // 彙=彙  単=単  サ=サ  イ=イ  ト=ト
   var RE = {
-    num:  /\u7b2c\s*(\d+)\s*\u554f/,
-    choi: /^[\s\u3000]*[\uff08(]([ABCDabcd])[\uff09)][.\s\u3000]*(.+)/,
-    ans:  /\u7b54[\u3048\u3044][\s\u3000]*[\uff1a:]\s*[\uff08(]?([ABCDabcd])[\uff09]/,
-    tran: /^(\u8a33|\u548c\u8a33|\u65e5\u672c\u8a9e\u8a33|\u3010\u8a33\u3011)/,
-    expl: /^(\u89e3\u8aac|\u3010\u89e3\u8aac\u3011)/,
-    voce: /^(\u8a9e\u5f59|\u5358\u8a9e|\u3010\u8a9e\u5f59\u3011)/,
-    nav:  /^(HOME|TOEIC|Copyright|\u30b5\u30a4\u30c8)/i,
+    num:  /第\s*(\d+)\s*問/,
+    choi: /^[\s　]*[（(]([ABCDabcd])[）)][.\s　]*(.+)/,
+    ans:  /答[えい][\s　]*[：:]\s*[（(]?([ABCDabcd])[）]/,
+    tran: /^(訳|和訳|日本語訳|【訳】)/,
+    expl: /^(解説|【解説】)/,
+    voce: /^(語彙|単語|【語彙】)/,
+    nav:  /^(HOME|TOEIC|Copyright|サイト)/i,
   };
   var mc = document.querySelector('.entry-content,.post-content,article,main') || document.body;
   var blocks = Array.from(mc.querySelectorAll('p,h1,h2,h3,h4,li'))
@@ -58,13 +59,13 @@ function _parseQuestion() {
     var blk = blocks[bi];
     if ((m = RE.num.exec(blk)) && state === 'pre') {
       qid = +m[1];
-      if (/^[^\w]*\u7b2c\s*\d+\s*\u554f[^\w]*$/.test(blk)) { state = 'q'; continue; }
+      if (/^[^\w]*第\s*\d+\s*問[^\w]*$/.test(blk)) { state = 'q'; continue; }
     }
     if ((m = RE.choi.exec(blk))) { choices[m[1].toUpperCase()] = m[2].trim(); state = 'c'; continue; }
     if ((m = RE.ans.exec(blk)))  { ans = m[1].toUpperCase(); state = 'a'; continue; }
-    if (RE.tran.test(blk)) { trans = blk.replace(RE.tran, '').replace(/^[\s\uff1a:]*/, ''); state = 't'; continue; }
-    if (RE.expl.test(blk)) { var x = blk.replace(RE.expl, '').replace(/^[\s\uff1a:]*/, ''); if (x) expl.push(x); state = 'e'; continue; }
-    if (RE.voce.test(blk)) { var y = blk.replace(RE.voce, '').replace(/^[\s\uff1a:]*/, ''); if (y) vocab.push(y); state = 'v'; continue; }
+    if (RE.tran.test(blk)) { trans = blk.replace(RE.tran, '').replace(/^[\s：:]*/, ''); state = 't'; continue; }
+    if (RE.expl.test(blk)) { var x = blk.replace(RE.expl, '').replace(/^[\s：:]*/, ''); if (x) expl.push(x); state = 'e'; continue; }
+    if (RE.voce.test(blk)) { var y = blk.replace(RE.voce, '').replace(/^[\s：:]*/, ''); if (y) vocab.push(y); state = 'v'; continue; }
     if (state === 'pre' || state === 'q') {
       if (blk.length > 10 && !RE.nav.test(blk)) { qtxt = (qtxt + ' ' + blk).trim(); state = 'q'; }
     } else if (state === 't') { trans += ' ' + blk; state = 'e'; }
@@ -123,11 +124,25 @@ for (var i = 0; i < qUrls.length; i++) {
 }
 
 questions.sort(function(a, b) { return a.id - b.id; });
-Pasteboard.copy(JSON.stringify(questions));
-console.log('Done! ' + questions.length + ' questions copied to clipboard');
+var jsonStr = JSON.stringify(questions, null, 2);
+
+// Save to file (Files app -> On My iPhone -> Scriptable -> toeic-questions.json)
+var fm = FileManager.local();
+var savePath = fm.joinPath(fm.documentsDirectory(), 'toeic-questions.json');
+fm.writeString(savePath, jsonStr);
+
+// Also try clipboard
+Pasteboard.copy(jsonStr);
+
+console.log('Done! ' + questions.length + ' questions');
+console.log('File: ' + savePath);
 
 var done = new Alert();
 done.title = 'Done! ' + questions.length + ' questions';
-done.message = 'Copied to clipboard.\nPaste into questions.json on GitHub and commit.';
+done.message = 'Saved to:\nFiles -> On My iPhone -> Scriptable -> toeic-questions.json\n\nClipboard copy also attempted.';
+done.addAction('Show File');
 done.addAction('OK');
-await done.present();
+var choice = await done.present();
+if (choice === 0) {
+  await QuickLook.present(savePath);
+}
