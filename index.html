@@ -6,549 +6,458 @@
   <title>TOEIC Grammar Trainer</title>
   <style>
     :root {
-      --blue:   #2563eb;
-      --blue-l: #eff6ff;
-      --blue-d: #1d4ed8;
-      --green:  #16a34a;
-      --green-l:#f0fdf4;
-      --red:    #dc2626;
-      --red-l:  #fef2f2;
-      --amber:  #d97706;
-      --amber-l:#fffbeb;
-      --purple: #7c3aed;
-      --purple-l:#f5f3ff;
-      --bg:     #f1f5f9;
-      --card:   #ffffff;
-      --border: #e2e8f0;
-      --text:   #0f172a;
-      --muted:  #64748b;
+      --blue:   #2563eb; --blue-l: #eff6ff; --blue-d: #1d4ed8;
+      --green:  #16a34a; --green-l:#f0fdf4;
+      --red:    #dc2626; --red-l:  #fef2f2;
+      --amber:  #d97706; --amber-l:#fffbeb;
+      --purple: #7c3aed; --purple-l:#f5f3ff;
+      --bg: #f1f5f9; --card: #ffffff; --border: #e2e8f0;
+      --text: #0f172a; --muted: #64748b;
       --radius: 14px;
       --shadow: 0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
       --shadow-md: 0 4px 12px rgba(0,0,0,.08);
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100dvh;
-      line-height: 1.6;
+      background: var(--bg); color: var(--text);
+      min-height: 100dvh; line-height: 1.6;
     }
 
-    /* ── ナビゲーション ── */
+    /* ── ナビ ── */
     .nav {
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: var(--shadow);
+      background: var(--card); border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow);
     }
     .nav-inner {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 0 16px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      height: 56px;
+      max-width: 760px; margin: 0 auto; padding: 0 12px;
+      display: flex; align-items: center; gap: 2px; height: 56px;
     }
     .nav-logo {
-      font-weight: 800;
-      font-size: 1.05rem;
-      color: var(--blue);
-      letter-spacing: -.5px;
-      margin-right: auto;
+      font-weight: 800; font-size: 1rem; color: var(--blue);
+      letter-spacing: -.5px; margin-right: auto; cursor: pointer;
+      white-space: nowrap;
     }
     .nav-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: .875rem;
-      font-weight: 600;
-      background: transparent;
-      color: var(--muted);
-      transition: background .15s, color .15s;
-      position: relative;
+      display: flex; align-items: center; gap: 5px; padding: 6px 11px;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-size: .85rem; font-weight: 600; background: transparent;
+      color: var(--muted); transition: background .15s, color .15s;
+      position: relative; white-space: nowrap;
     }
     .nav-btn:hover { background: var(--bg); color: var(--text); }
     .nav-btn.active { background: var(--blue-l); color: var(--blue); }
     .badge {
-      background: var(--red);
-      color: #fff;
-      border-radius: 999px;
-      font-size: .7rem;
-      font-weight: 700;
-      padding: 1px 6px;
-      min-width: 18px;
-      text-align: center;
+      background: var(--red); color: #fff; border-radius: 999px;
+      font-size: .7rem; font-weight: 700; padding: 1px 6px; min-width: 18px; text-align: center;
     }
+    .user-chip {
+      display: flex; align-items: center; gap: 5px; padding: 5px 10px;
+      border: 1.5px solid var(--border); border-radius: 999px; cursor: pointer;
+      font-size: .8rem; font-weight: 600; background: var(--card); color: var(--text);
+      transition: border-color .15s; white-space: nowrap; margin-left: 4px;
+    }
+    .user-chip:hover { border-color: var(--blue); color: var(--blue); }
 
-    /* ── メインコンテンツ ── */
-    .view {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 24px 16px 80px;
-    }
+    /* ── メイン ── */
+    .view { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
 
     /* ── カード ── */
     .card {
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 20px;
-      margin-bottom: 16px;
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 20px; margin-bottom: 16px;
     }
     .card-title {
-      font-size: .75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: var(--muted);
-      margin-bottom: 8px;
+      font-size: .75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted); margin-bottom: 8px;
     }
 
     /* ── ダッシュボード ── */
     .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
+      display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 20px;
     }
-    @media (min-width: 480px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+    @media (min-width:480px) { .stats-grid { grid-template-columns: repeat(4,1fr); } }
     .stat-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 16px;
-      text-align: center;
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 16px; text-align: center;
     }
-    .stat-num {
-      font-size: 2rem;
-      font-weight: 800;
-      line-height: 1;
-      margin-bottom: 4px;
-    }
+    .stat-num { font-size: 2rem; font-weight: 800; line-height: 1; margin-bottom: 4px; }
     .stat-label { font-size: .8rem; color: var(--muted); font-weight: 500; }
-    .s-blue   { color: var(--blue); }
-    .s-green  { color: var(--green); }
-    .s-amber  { color: var(--amber); }
-    .s-purple { color: var(--purple); }
+    .s-blue { color: var(--blue); } .s-green { color: var(--green); }
+    .s-amber { color: var(--amber); } .s-purple { color: var(--purple); }
 
     .alert {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--amber-l);
-      border: 1px solid #fde68a;
-      border-radius: var(--radius);
-      padding: 14px 18px;
-      margin-bottom: 20px;
-      font-size: .9rem;
-      font-weight: 500;
+      display: flex; align-items: center; gap: 10px;
+      background: var(--amber-l); border: 1px solid #fde68a;
+      border-radius: var(--radius); padding: 14px 18px; margin-bottom: 20px;
+      font-size: .9rem; font-weight: 500;
     }
     .alert-icon { font-size: 1.3rem; flex-shrink: 0; }
-    .alert-success {
-      background: var(--green-l);
-      border-color: #86efac;
-    }
+    .alert-success { background: var(--green-l); border-color: #86efac; }
 
     .action-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 20px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
     }
-    @media (min-width: 480px) { .action-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width:480px) { .action-grid { grid-template-columns: repeat(3,1fr); } }
     .action-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 20px 12px;
-      background: var(--card);
-      border: 2px solid var(--border);
-      border-radius: var(--radius);
-      cursor: pointer;
-      font-weight: 700;
-      font-size: .9rem;
-      color: var(--text);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 8px; padding: 20px 12px;
+      background: var(--card); border: 2px solid var(--border);
+      border-radius: var(--radius); cursor: pointer;
+      font-weight: 700; font-size: .9rem; color: var(--text);
       transition: border-color .15s, background .15s, transform .1s;
     }
-    .action-btn:hover {
-      border-color: var(--blue);
-      background: var(--blue-l);
-      transform: translateY(-2px);
-      color: var(--blue);
+    .action-btn:hover:not(:disabled) {
+      border-color: var(--blue); background: var(--blue-l);
+      transform: translateY(-2px); color: var(--blue);
     }
+    .action-btn:disabled { opacity: .45; cursor: not-allowed; }
     .action-btn .icon { font-size: 1.8rem; }
     .action-btn .sub { font-size: .75rem; color: var(--muted); font-weight: 500; }
 
-    /* 進捗バー */
+    /* ── 進捗バー ── */
     .progress-bar {
-      height: 8px;
-      background: var(--border);
-      border-radius: 999px;
-      overflow: hidden;
-      margin-top: 8px;
+      height: 8px; background: var(--border);
+      border-radius: 999px; overflow: hidden; margin-top: 8px;
     }
     .progress-fill {
-      height: 100%;
-      background: var(--blue);
-      border-radius: 999px;
-      transition: width .4s ease;
+      height: 100%; background: var(--blue);
+      border-radius: 999px; transition: width .4s ease;
     }
     .progress-labels {
-      display: flex;
-      justify-content: space-between;
-      font-size: .78rem;
-      color: var(--muted);
-      margin-top: 4px;
+      display: flex; justify-content: space-between;
+      font-size: .78rem; color: var(--muted); margin-top: 4px;
     }
 
-    /* レベル分布 */
+    /* ── レベル分布バー ── */
     .level-bars {
-      display: flex;
-      gap: 4px;
-      align-items: flex-end;
-      height: 60px;
-      margin-top: 12px;
+      display: flex; gap: 4px; align-items: flex-end; height: 60px; margin-top: 12px;
     }
     .level-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .level-bar {
-      width: 100%;
-      border-radius: 4px 4px 0 0;
-      min-height: 4px;
-      transition: height .4s;
-    }
-    .level-bar-label { font-size: .65rem; color: var(--muted); }
+    .level-bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 4px; transition: height .4s; }
+    .level-bar-label { font-size: .6rem; color: var(--muted); }
 
     /* ── 問題画面 ── */
     .session-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
     }
     .session-info { font-size: .85rem; color: var(--muted); font-weight: 500; }
     .session-progress { font-size: .85rem; font-weight: 700; color: var(--blue); }
-
     .q-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-md);
-      padding: 28px 24px;
-      margin-bottom: 16px;
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: var(--shadow-md); padding: 28px 24px; margin-bottom: 16px;
     }
     .q-num {
-      font-size: .78rem;
-      font-weight: 700;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      margin-bottom: 12px;
+      font-size: .78rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px;
     }
     .q-text {
-      font-size: 1.15rem;
-      font-weight: 500;
-      line-height: 1.8;
-      margin-bottom: 4px;
-      word-break: break-word;
+      font-size: 1.15rem; font-weight: 500; line-height: 1.8;
+      margin-bottom: 4px; word-break: break-word;
     }
     .q-blank {
-      display: inline-block;
-      min-width: 80px;
-      border-bottom: 2px solid var(--blue);
-      color: var(--blue);
-      font-weight: 700;
+      display: inline-block; min-width: 80px;
+      border-bottom: 2px solid var(--blue); color: var(--blue); font-weight: 700;
     }
-
     .choices { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
     .choice-btn {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 14px 16px;
-      border: 2px solid var(--border);
-      border-radius: 10px;
-      cursor: pointer;
-      background: var(--card);
-      text-align: left;
-      font-size: .95rem;
-      font-weight: 500;
-      color: var(--text);
-      transition: border-color .15s, background .15s;
-      width: 100%;
+      display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px;
+      border: 2px solid var(--border); border-radius: 10px; cursor: pointer;
+      background: var(--card); text-align: left; font-size: .95rem;
+      font-weight: 500; color: var(--text);
+      transition: border-color .15s, background .15s; width: 100%;
     }
-    .choice-btn:hover:not(:disabled) {
-      border-color: var(--blue);
-      background: var(--blue-l);
-    }
+    .choice-btn:hover:not(:disabled) { border-color: var(--blue); background: var(--blue-l); }
     .choice-label {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: var(--bg);
-      font-weight: 800;
-      font-size: .85rem;
-      flex-shrink: 0;
-      border: 2px solid var(--border);
-      color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 50%; background: var(--bg);
+      font-weight: 800; font-size: .85rem; flex-shrink: 0;
+      border: 2px solid var(--border); color: var(--muted);
     }
-    .choice-btn.correct {
-      border-color: var(--green);
-      background: var(--green-l);
-    }
-    .choice-btn.correct .choice-label {
-      background: var(--green);
-      border-color: var(--green);
-      color: #fff;
-    }
-    .choice-btn.wrong {
-      border-color: var(--red);
-      background: var(--red-l);
-    }
-    .choice-btn.wrong .choice-label {
-      background: var(--red);
-      border-color: var(--red);
-      color: #fff;
-    }
-    .choice-btn:disabled { cursor: default; }
-
-    /* フィードバック */
+    .choice-btn.correct { border-color: var(--green); background: var(--green-l); }
+    .choice-btn.correct .choice-label { background: var(--green); border-color: var(--green); color: #fff; }
+    .choice-btn.wrong { border-color: var(--red); background: var(--red-l); }
+    .choice-btn.wrong .choice-label { background: var(--red); border-color: var(--red); color: #fff; }
     .feedback {
-      border-radius: var(--radius);
-      padding: 16px 20px;
-      margin-top: 16px;
-      animation: slideUp .2s ease;
+      border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+      border: 1px solid var(--border);
     }
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .feedback.correct-fb {
-      background: var(--green-l);
-      border: 1px solid #86efac;
-    }
-    .feedback.wrong-fb {
-      background: var(--red-l);
-      border: 1px solid #fca5a5;
-    }
-    .feedback-title {
-      font-weight: 800;
-      font-size: 1.05rem;
-      margin-bottom: 8px;
-    }
+    .feedback.correct-fb { background: var(--green-l); border-color: #86efac; }
+    .feedback.wrong-fb   { background: var(--red-l);   border-color: #fca5a5; }
+    .feedback-title { font-size: 1rem; font-weight: 800; margin-bottom: 10px; }
     .feedback.correct-fb .feedback-title { color: var(--green); }
     .feedback.wrong-fb   .feedback-title { color: var(--red); }
-
     .detail-section { margin-top: 12px; }
     .detail-label {
-      font-size: .72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: var(--muted);
-      margin-bottom: 4px;
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted); margin-bottom: 4px;
     }
-    .detail-text { font-size: .9rem; color: var(--text); line-height: 1.7; }
-
+    .detail-text { font-size: .9rem; line-height: 1.7; white-space: pre-wrap; }
     .next-btn {
-      width: 100%;
-      margin-top: 16px;
-      padding: 14px;
-      background: var(--blue);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background .15s;
+      display: block; width: 100%; padding: 16px; background: var(--blue);
+      color: #fff; border: none; border-radius: 10px; font-size: 1rem;
+      font-weight: 700; cursor: pointer; transition: opacity .15s; margin-top: 8px;
     }
-    .next-btn:hover { background: var(--blue-d); }
+    .next-btn:hover { opacity: .88; }
 
-    /* セッション結果 */
-    .result-card {
-      text-align: center;
-      padding: 40px 24px;
-    }
+    /* ── セッション結果 ── */
+    .result-card { text-align: center; padding: 40px 24px; }
     .result-emoji { font-size: 3.5rem; margin-bottom: 16px; }
     .result-title { font-size: 1.6rem; font-weight: 800; margin-bottom: 8px; }
     .result-sub   { font-size: 1rem; color: var(--muted); margin-bottom: 24px; }
     .result-score {
-      display: inline-flex;
-      gap: 32px;
-      background: var(--bg);
-      border-radius: 12px;
-      padding: 16px 32px;
-      margin-bottom: 28px;
+      display: inline-flex; gap: 32px; background: var(--bg);
+      border-radius: 12px; padding: 16px 32px; margin-bottom: 28px;
     }
     .score-item { text-align: center; }
     .score-num { font-size: 2rem; font-weight: 800; }
     .score-lbl { font-size: .8rem; color: var(--muted); font-weight: 500; }
     .btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
     .btn {
-      padding: 12px 24px;
-      border-radius: 10px;
-      border: none;
-      font-size: .95rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: opacity .15s;
+      padding: 12px 24px; border-radius: 10px; border: none;
+      font-size: .95rem; font-weight: 700; cursor: pointer; transition: opacity .15s;
     }
     .btn:hover { opacity: .85; }
     .btn-primary { background: var(--blue); color: #fff; }
     .btn-outline {
-      background: transparent;
-      border: 2px solid var(--border);
-      color: var(--text);
+      background: transparent; border: 2px solid var(--border); color: var(--text);
     }
 
     /* ── 統計画面 ── */
-    .stats-detail-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    .mini-stat {
-      background: var(--bg);
-      border-radius: 10px;
-      padding: 14px;
-    }
+    .stats-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .mini-stat { background: var(--bg); border-radius: 10px; padding: 14px; }
     .mini-stat-num { font-size: 1.4rem; font-weight: 800; color: var(--blue); }
     .mini-stat-lbl { font-size: .78rem; color: var(--muted); }
 
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
-      margin-top: 12px;
+    /* ── 学習カレンダー ── */
+    .cal-month-row {
+      display: grid; grid-template-columns: repeat(7,1fr); gap: 2px;
+      margin-bottom: 2px;
     }
+    .cal-weekday {
+      text-align: center; font-size: .6rem; font-weight: 600;
+      color: var(--muted); padding: 2px 0;
+    }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; margin-top: 4px; }
     .cal-day {
-      aspect-ratio: 1;
-      border-radius: 4px;
-      background: var(--border);
+      aspect-ratio: 1; border-radius: 5px; background: var(--border);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: default; position: relative; overflow: hidden;
     }
-    .cal-day.has-study { background: var(--blue); opacity: .7; }
-    .cal-day.today { outline: 2px solid var(--blue); }
+    .cal-day-num { font-size: .6rem; font-weight: 600; color: var(--muted); line-height: 1; }
+    .cal-day.s1  { background: #bfdbfe; } .cal-day.s1  .cal-day-num { color: #1e40af; }
+    .cal-day.s2  { background: #93c5fd; } .cal-day.s2  .cal-day-num { color: #1e40af; }
+    .cal-day.s3  { background: #60a5fa; } .cal-day.s3  .cal-day-num { color: #fff; }
+    .cal-day.s4  { background: #3b82f6; } .cal-day.s4  .cal-day-num { color: #fff; }
+    .cal-day.s5  { background: #2563eb; } .cal-day.s5  .cal-day-num { color: #fff; }
+    .cal-day.today { outline: 2px solid var(--blue); outline-offset: 1px; }
+    .cal-cnt { font-size: .5rem; color: inherit; opacity: .8; }
+
+    /* ── 記憶レベルチップ（グラデーション） ── */
+    .level-chip {
+      padding: 3px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700;
+    }
+    .lv0 { background: #f1f5f9; color: #64748b; }
+    .lv1 { background: #fee2e2; color: #b91c1c; }
+    .lv2 { background: #ffedd5; color: #c2410c; }
+    .lv3 { background: #fef9c3; color: #a16207; }
+    .lv4 { background: #ecfccb; color: #3f6212; }
+    .lv5 { background: #dcfce7; color: #15803d; }
+    .lv6 { background: #ccfbf1; color: #0f766e; }
+    .lv7 { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+
+    /* ── ジャンル選択 ── */
+    .genre-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 12px;
+    }
+    @media (min-width:480px) { .genre-grid { grid-template-columns: repeat(4,1fr); } }
+    .genre-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 12px 6px; background: var(--bg); border: 2px solid var(--border);
+      border-radius: 10px; cursor: pointer; font-size: .78rem; font-weight: 600;
+      color: var(--text); transition: border-color .15s, background .15s;
+    }
+    .genre-btn:hover { border-color: var(--blue); background: var(--blue-l); color: var(--blue); }
+    .genre-btn.selected { border-color: var(--blue); background: var(--blue-l); color: var(--blue); }
+    .genre-btn .g-emoji { font-size: 1.4rem; }
+    .genre-btn .g-cnt { font-size: .65rem; color: var(--muted); }
 
     /* ── ローディング・エラー ── */
     .center-box {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 50vh;
-      text-align: center;
-      gap: 16px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 50vh; text-align: center; gap: 16px;
     }
     .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid var(--border);
-      border-top-color: var(--blue);
-      border-radius: 50%;
+      width: 40px; height: 40px; border: 4px solid var(--border);
+      border-top-color: var(--blue); border-radius: 50%;
       animation: spin .8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .error-box {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 32px;
-      max-width: 520px;
-    }
-    .error-box h2 { font-size: 1.2rem; margin-bottom: 8px; }
-    .error-box p  { color: var(--muted); font-size: .9rem; line-height: 1.7; }
-    .code {
-      background: #1e293b;
-      color: #94a3b8;
-      border-radius: 8px;
-      padding: 12px 16px;
-      font-family: monospace;
-      font-size: .85rem;
-      margin: 12px 0;
-      text-align: left;
-    }
 
-    /* ── レビュースケジュール表示 ── */
-    .review-schedule {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 10px;
-    }
-    .level-chip {
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: .75rem;
-      font-weight: 700;
-    }
-    .lv0 { background: #f1f5f9; color: var(--muted); }
-    .lv1 { background: #dbeafe; color: #1d4ed8; }
-    .lv2 { background: #d1fae5; color: #065f46; }
-    .lv3 { background: #fef3c7; color: #92400e; }
-    .lv4 { background: #ede9fe; color: #5b21b6; }
-    .lv5 { background: #fce7f3; color: #9d174d; }
-    .lv6 { background: #dcfce7; color: #14532d; border: 1px solid #86efac; }
+    /* ── レビュースケジュール ── */
+    .review-schedule { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 
-    /* ── インポートモーダル ── */
+    /* ── モーダル ── */
     .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.5);
-      z-index: 200;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px;
     }
     .modal {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 24px;
-      width: 100%;
-      max-width: 560px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      background: var(--card); border-radius: var(--radius); padding: 24px;
+      width: 100%; max-width: 560px; box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      max-height: 90vh; overflow-y: auto;
     }
     .modal h2 { font-size: 1.1rem; margin-bottom: 6px; }
     .modal p  { font-size: .85rem; color: var(--muted); margin-bottom: 14px; line-height: 1.6; }
     .modal textarea {
-      width: 100%;
-      height: 180px;
-      border: 2px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 12px;
-      font-size: .82rem;
-      font-family: monospace;
-      resize: vertical;
-      margin-bottom: 12px;
+      width: 100%; height: 180px; border: 2px solid var(--border); border-radius: 8px;
+      padding: 10px 12px; font-size: .82rem; font-family: monospace; resize: vertical; margin-bottom: 12px;
     }
     .modal textarea:focus { outline: none; border-color: var(--blue); }
     .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+    .modal input[type=text] {
+      width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px;
+      font-size: .95rem; margin-bottom: 12px;
+    }
+    .modal input[type=text]:focus { outline: none; border-color: var(--blue); }
+
+    /* ── ユーザー一覧 ── */
+    .user-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .user-row {
+      display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+      border: 2px solid var(--border); border-radius: 10px; cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .user-row:hover { border-color: var(--blue); background: var(--blue-l); }
+    .user-row.current { border-color: var(--blue); background: var(--blue-l); }
+    .user-avatar {
+      width: 36px; height: 36px; border-radius: 50%; background: var(--blue);
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem; flex-shrink: 0;
+    }
+    .user-row-name { font-weight: 700; flex: 1; }
+    .user-row-stats { font-size: .78rem; color: var(--muted); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .code {
+      background: #1e293b; color: #94a3b8; border-radius: 8px;
+      padding: 12px 16px; font-family: monospace; font-size: .85rem; margin: 12px 0; text-align: left;
+    }
+
+    /* ── 認証画面 ── */
+    #auth-screen {
+      position: fixed; inset: 0; z-index: 300;
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #0ea5e9 100%);
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .auth-card {
+      background: #fff; border-radius: 20px; padding: 36px 28px;
+      width: 100%; max-width: 400px; box-shadow: 0 24px 64px rgba(0,0,0,.35);
+    }
+    .auth-logo {
+      font-size: 1.9rem; font-weight: 900; color: var(--blue);
+      text-align: center; margin-bottom: 4px;
+    }
+    .auth-tagline { font-size: .88rem; color: var(--muted); text-align: center; margin-bottom: 28px; }
+    .auth-sec-title {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted); margin-bottom: 8px;
+    }
+    .auth-ulist { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .auth-ubtn {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+      border: 2px solid var(--border); border-radius: 12px; cursor: pointer;
+      background: var(--card); text-align: left; width: 100%;
+      transition: border-color .15s, background .15s;
+    }
+    .auth-ubtn:hover { border-color: var(--blue); background: var(--blue-l); }
+    .auth-uavatar {
+      width: 38px; height: 38px; border-radius: 50%; background: var(--blue);
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem; flex-shrink: 0;
+    }
+    .auth-uname { font-weight: 700; font-size: .9rem; }
+    .auth-ustats { font-size: .72rem; color: var(--muted); }
+    .auth-or {
+      display: flex; align-items: center; gap: 10px; margin: 16px 0;
+      color: var(--muted); font-size: .8rem;
+    }
+    .auth-or::before, .auth-or::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
+    .auth-input {
+      width: 100%; padding: 13px 16px; border: 2px solid var(--border);
+      border-radius: 10px; font-size: .95rem; margin-bottom: 10px;
+      transition: border-color .15s;
+    }
+    .auth-input:focus { outline: none; border-color: var(--blue); }
+    .auth-btn {
+      width: 100%; padding: 14px; background: var(--blue); color: #fff;
+      border: none; border-radius: 10px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .auth-btn:hover { opacity: .88; }
+
+    /* ── 今日の100問ヒーロー ── */
+    .daily-hero {
+      background: linear-gradient(135deg, #1e40af, #2563eb 60%, #0ea5e9);
+      border-radius: var(--radius); padding: 28px 24px; margin-bottom: 16px;
+      color: #fff; position: relative; overflow: hidden;
+    }
+    .daily-hero-sub {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; opacity: .75; margin-bottom: 4px;
+    }
+    .daily-hero-title { font-size: 1.75rem; font-weight: 900; margin-bottom: 16px; line-height: 1.2; }
+    .daily-hero-bar {
+      background: rgba(255,255,255,.25); border-radius: 999px;
+      height: 10px; margin-bottom: 8px; overflow: hidden;
+    }
+    .daily-hero-bar-fill { height: 100%; background: #fff; border-radius: 999px; transition: width .5s ease; }
+    .daily-hero-cnt { font-size: .88rem; opacity: .88; margin-bottom: 18px; font-weight: 500; }
+    .daily-hero-action {
+      display: block; width: 100%; padding: 15px;
+      background: rgba(255,255,255,.93); color: #1e40af;
+      border: none; border-radius: 10px; font-size: 1.05rem;
+      font-weight: 800; cursor: pointer; transition: background .15s, transform .1s;
+    }
+    .daily-hero-action:hover { background: #fff; transform: translateY(-1px); }
+    .daily-complete {
+      background: rgba(255,255,255,.15); border: 2px solid rgba(255,255,255,.4);
+      border-radius: 10px; padding: 14px 16px;
+      font-weight: 700; text-align: center; font-size: .98rem;
+    }
   </style>
 </head>
 <body>
 
+<!-- 認証画面 -->
+<div id="auth-screen" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">📚 TOEIC Grammar</div>
+    <div class="auth-tagline">GitHubアカウントでログイン</div>
+    <div class="auth-sec-title">Personal Access Token</div>
+    <input type="password" id="auth-token-input" class="auth-input"
+      placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+      onkeydown="if(event.key==='Enter')authWithGitHub()">
+    <div id="auth-err" style="color:#dc2626;font-size:.82rem;margin-bottom:8px;display:none"></div>
+    <button class="auth-btn" id="auth-submit-btn" onclick="authWithGitHub()">ログイン</button>
+    <div style="margin-top:18px;font-size:.76rem;color:#64748b;line-height:1.6;text-align:left">
+      トークンの作成: GitHub → Settings → Developer settings →<br>
+      Personal access tokens → <strong>gist</strong> スコープにチェック
+    </div>
+  </div>
+</div>
+
 <!-- ナビゲーション -->
 <nav class="nav">
   <div class="nav-inner">
-    <div class="nav-logo">📚 TOEIC Grammar</div>
+    <div class="nav-logo" onclick="showView('dashboard')">📚 TOEIC</div>
     <button class="nav-btn active" id="nav-dash" onclick="showView('dashboard')">ホーム</button>
     <button class="nav-btn" id="nav-study" onclick="showView('study-menu')">学習</button>
     <button class="nav-btn" id="nav-stats" onclick="showView('stats')">
       統計 <span class="badge" id="review-badge" style="display:none">0</span>
     </button>
+    <button class="nav-btn" id="nav-settings" onclick="showView('settings')">⚙️設定</button>
+    <div id="sync-badge" style="font-size:.75rem;color:var(--muted);padding:0 6px;white-space:nowrap;cursor:pointer"
+      onclick="showView('settings')" title="同期状態"></div>
   </div>
 </nav>
 
@@ -559,8 +468,7 @@
 <div class="modal-overlay" id="import-modal" style="display:none" onclick="if(event.target===this)closeImport()">
   <div class="modal">
     <h2>📋 問題データを貼り付け</h2>
-    <p>ブックマークレットで取得した JSON テキストをここに貼り付けてください。<br>
-       ブックマークレット実行後に表示されるテキストを「全選択→コピー」して貼り付けます。</p>
+    <p>スクレイパーで取得した JSON テキストをここに貼り付けてください。</p>
     <textarea id="import-textarea" placeholder='[ { "id": 1, "question": "...", ... } ]'></textarea>
     <div class="modal-btns">
       <button class="btn btn-outline" onclick="closeImport()">キャンセル</button>
@@ -569,26 +477,189 @@
   </div>
 </div>
 
+
 <script>
 // ═══════════════════════════════════════════════════════════════
-//  エビングハウス忘却曲線 設定
+//  定数
 // ═══════════════════════════════════════════════════════════════
-const REVIEW_INTERVALS = [1, 3, 7, 14, 30, 60, 90]; // 日数（レベル別）
+const REVIEW_INTERVALS = [1, 3, 7, 14, 30, 60, 90];
 const LEVEL_LABELS     = ['新規','1日','3日','1週','2週','1月','2月','定着'];
-const LEVEL_COLORS     = ['#94a3b8','#3b82f6','#22c55e','#f59e0b','#a78bfa','#ec4899','#10b981'];
+const LEVEL_COLORS     = ['#94a3b8','#f87171','#fb923c','#fbbf24','#a3e635','#4ade80','#2dd4bf','#60a5fa'];
 const DAY_MS           = 86400000;
+const DAILY_TARGET     = 100;
 
+const GENRE_CATEGORIES = [
+  { id: 'tense',   label: '時制',           emoji: '⏰', kw: ['時制','現在完了','過去完了','未来形','過去形','完了形','仮定法'] },
+  { id: 'passive', label: '受動態',         emoji: '🔄', kw: ['受動態','受動','受け身'] },
+  { id: 'modal',   label: '助動詞',         emoji: '🔧', kw: ['助動詞'] },
+  { id: 'rel',     label: '関係詞',         emoji: '🔗', kw: ['関係代名詞','関係副詞'] },
+  { id: 'prep',    label: '前置詞',         emoji: '📍', kw: ['前置詞'] },
+  { id: 'conj',    label: '接続詞',         emoji: '💬', kw: ['接続詞'] },
+  { id: 'infger',  label: '不定詞・動名詞', emoji: '📝', kw: ['不定詞','動名詞'] },
+  { id: 'comp',    label: '比較',           emoji: '📊', kw: ['比較','比較級','最上級'] },
+  { id: 'vocab',   label: '語彙・語法',     emoji: '📚', kw: [] },
+];
+
+function classifyQuestion(q) {
+  const text = (q.explanation || '') + (q.question || '');
+  for (const cat of GENRE_CATEGORIES) {
+    if (cat.kw.some(kw => text.includes(kw))) return cat.id;
+  }
+  return 'vocab';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GitHub API
+// ═══════════════════════════════════════════════════════════════
+const GH_API    = 'https://api.github.com';
+const GIST_DESC = 'TOEIC Grammar Trainer Progress';
+const GIST_FILE = 'progress.json';
+let _saveTimer  = null;
+
+function getGhToken()    { return sessionStorage.getItem('gh_token'); }
+function setGhToken(t)   { sessionStorage.setItem('gh_token', t); }
+function getGhUser()     { try { return JSON.parse(sessionStorage.getItem('gh_user') || 'null'); } catch { return null; } }
+function setGhUser(u)    { sessionStorage.setItem('gh_user', JSON.stringify(u)); }
+function getGhGistId()   { return sessionStorage.getItem('gh_gist_id'); }
+function setGhGistId(id) { sessionStorage.setItem('gh_gist_id', id); }
+function clearSession()  { sessionStorage.clear(); }
+
+async function ghFetch(path, opts = {}) {
+  const token = getGhToken();
+  const res = await fetch(GH_API + path, {
+    ...opts,
+    headers: {
+      'Authorization': 'token ' + token,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+      ...(opts.headers || {})
+    },
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (!res.ok) throw new Error('GitHub API error ' + res.status);
+  return res;
+}
+
+async function ghFindOrCreateGist() {
+  const r = await ghFetch('/gists?per_page=100');
+  const gists = await r.json();
+  const found = gists.find(g => g.description === GIST_DESC && g.files[GIST_FILE]);
+  if (found) { setGhGistId(found.id); return found.id; }
+  const cr = await ghFetch('/gists', {
+    method: 'POST',
+    body: { description: GIST_DESC, public: false, files: { [GIST_FILE]: { content: '{}' } } }
+  });
+  const g = await cr.json();
+  setGhGistId(g.id);
+  return g.id;
+}
+
+async function ghLoadData() {
+  try {
+    const gistId = await ghFindOrCreateGist();
+    const r = await ghFetch('/gists/' + gistId);
+    const g = await r.json();
+    const content = g.files[GIST_FILE]?.content || '{}';
+    return JSON.parse(content);
+  } catch { return {}; }
+}
+
+async function ghSaveNow() {
+  const gistId = getGhGistId();
+  if (!gistId || !getGhToken()) return;
+  setSyncBadge('saving');
+  try {
+    await ghFetch('/gists/' + gistId, {
+      method: 'PATCH',
+      body: { files: { [GIST_FILE]: { content: JSON.stringify({ progress, history }) } } }
+    });
+    setSyncBadge('synced');
+  } catch(e) { console.error('Gist save failed:', e); setSyncBadge('error'); }
+}
+
+function scheduleSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(ghSaveNow, 2000);
+}
+
+function setSyncBadge(state) {
+  const el = document.getElementById('sync-badge');
+  if (!el) return;
+  if (state === 'saving') { el.textContent = '⏳ 同期中'; el.style.color = 'var(--amber)'; }
+  else if (state === 'synced') { el.textContent = '☁️ 同期済'; el.style.color = 'var(--green)'; }
+  else if (state === 'error')  { el.textContent = '⚠️ 同期失敗'; el.style.color = 'var(--red)'; }
+  else { el.textContent = ''; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  認証
+// ═══════════════════════════════════════════════════════════════
+function isAuthenticated() { return !!getGhToken(); }
+
+function showAuthScreen() {
+  document.getElementById('auth-screen').style.display = 'flex';
+  const inp = document.getElementById('auth-token-input');
+  if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 120); }
+  const err = document.getElementById('auth-err');
+  if (err) err.style.display = 'none';
+}
+
+function hideAuthScreen() {
+  document.getElementById('auth-screen').style.display = 'none';
+}
+
+async function authWithGitHub() {
+  const inp   = document.getElementById('auth-token-input');
+  const errEl = document.getElementById('auth-err');
+  const btn   = document.getElementById('auth-submit-btn');
+  const token = inp ? inp.value.trim() : '';
+  if (!token) {
+    errEl.textContent = 'トークンを入力してください'; errEl.style.display = 'block'; return;
+  }
+  errEl.style.display = 'none';
+  btn.textContent = '確認中...'; btn.disabled = true;
+  try {
+    const r = await fetch(GH_API + '/user', {
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!r.ok) throw new Error('認証失敗 (HTTP ' + r.status + ')');
+    const user = await r.json();
+    setGhToken(token);
+    setGhUser(user);
+    setSyncBadge('saving');
+    const data = await ghLoadData();
+    progress = data.progress || {};
+    history  = (data.history || []).filter(h => h.ts > Date.now() - 90 * DAY_MS);
+    setSyncBadge('synced');
+    hideAuthScreen();
+    showView('dashboard');
+    updateBadge();
+  } catch(e) {
+    errEl.textContent = e.message || 'ログインに失敗しました'; errEl.style.display = 'block';
+  } finally {
+    btn.textContent = 'ログイン'; btn.disabled = false;
+  }
+}
+
+function logout() {
+  clearTimeout(_saveTimer);
+  clearSession();
+  progress = {}; history = [];
+  showAuthScreen();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  エビングハウス
+// ═══════════════════════════════════════════════════════════════
 function nextReview(level) {
   const days = REVIEW_INTERVALS[Math.min(level, REVIEW_INTERVALS.length - 1)];
   return Date.now() + days * DAY_MS;
 }
-
 function isDue(p) {
   if (!p || p.level === undefined) return true;
   if (p.level === 0) return true;
   return !p.nextReview || Date.now() >= p.nextReview;
 }
-
 function formatNextReview(p) {
   if (!p || !p.nextReview) return '今すぐ';
   const diff = p.nextReview - Date.now();
@@ -601,45 +672,28 @@ function formatNextReview(p) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  ストレージ
+//  ストレージ（インメモリ + Gist）
 // ═══════════════════════════════════════════════════════════════
-const STORAGE_KEY    = 'toeic_v2';
-const HISTORY_KEY    = 'toeic_history_v2';
-
-function loadProgress() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
-  catch { return {}; }
-}
-
-function saveProgress(p) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
-}
-
-function loadHistory() {
-  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
-  catch { return []; }
-}
-
-function saveHistory(h) {
-  // 直近90日分のみ保持
+function loadProgress()  { return progress; }
+function saveProgress(p) { progress = p; scheduleSave(); }
+function loadHistory()   { return history; }
+function saveHistory(h)  {
   const cutoff = Date.now() - 90 * DAY_MS;
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(h.filter(x => x.ts > cutoff)));
+  history = h.filter(x => x.ts > cutoff);
+  scheduleSave();
 }
-
 function recordStudy(qid, correct) {
-  const h = loadHistory();
-  h.push({ ts: Date.now(), qid, correct });
-  saveHistory(h);
+  history.push({ ts: Date.now(), qid, correct });
+  scheduleSave();
 }
-
 function updateQProgress(progress, qid, correct) {
-  const p = progress[qid] || { level: 0, correctCount: 0, wrongCount: 0, nextReview: null, firstStudied: Date.now() };
+  const p = progress[qid] || { level:0, correctCount:0, wrongCount:0, nextReview:null, firstStudied:Date.now() };
   if (correct) {
-    p.level       = Math.min((p.level || 0) + 1, REVIEW_INTERVALS.length);
-    p.correctCount = (p.correctCount || 0) + 1;
+    p.level        = Math.min((p.level||0)+1, REVIEW_INTERVALS.length);
+    p.correctCount = (p.correctCount||0)+1;
   } else {
-    p.level       = 0;
-    p.wrongCount  = (p.wrongCount || 0) + 1;
+    p.level    = 0;
+    p.wrongCount = (p.wrongCount||0)+1;
   }
   p.nextReview   = nextReview(p.level);
   p.lastReviewed = Date.now();
@@ -648,446 +702,362 @@ function updateQProgress(progress, qid, correct) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  アプリ状態
-// ═══════════════════════════════════════════════════════════════
-let questions  = [];
-let progress   = loadProgress();
-let session    = null;   // { queue, idx, correct, wrong, mode }
-let usingDemo  = false;
-
-// ── デモ問題（questions.json がない場合） ──────────────────────
-const DEMO_QUESTIONS = [
-  {
-    id: 1,
-    question: "The committee _____ three times since the beginning of this year.",
-    choices: { A:"has met", B:"met", C:"meets", D:"had met" },
-    answer: "A",
-    translation: "委員会は今年の初めから3回会合を開いてきた。",
-    explanation: "since（〜以来）は現在完了形と一緒に使います。動作の継続・経験・完了を表す場合に現在完了（have/has + 過去分詞）を使います。",
-    vocabulary: "committee: 委員会 / since: 〜以来 / beginning: 初め"
-  },
-  {
-    id: 2,
-    question: "All employees are required to _____ their ID badges at all times.",
-    choices: { A:"wearing", B:"wore", C:"wear", D:"worn" },
-    answer: "C",
-    translation: "全従業員は常にIDバッジを着用することが求められています。",
-    explanation: "require + to 不定詞の構文。「are required to + 動詞の原形」なので wear が正解です。",
-    vocabulary: "employee: 従業員 / require: 要求する / badge: バッジ / at all times: 常に"
-  },
-  {
-    id: 3,
-    question: "The new software _____ by the IT department next week.",
-    choices: { A:"will install", B:"will be installed", C:"is installing", D:"installs" },
-    answer: "B",
-    translation: "新しいソフトウェアは来週IT部門によってインストールされる予定です。",
-    explanation: "主語「The new software」はインストールされる側なので受動態を使います。未来の受動態は will be + 過去分詞です。",
-    vocabulary: "software: ソフトウェア / install: インストールする / IT department: IT部門"
-  },
-  {
-    id: 4,
-    question: "Please submit your report _____ Friday at the latest.",
-    choices: { A:"until", B:"by", C:"since", D:"for" },
-    answer: "B",
-    translation: "遅くとも金曜日までにレポートを提出してください。",
-    explanation: "「by + 期限」は「〜までに（完了）」。「until」は状態の継続を表します（例: Wait until Friday）。期限の意味では by が正解です。",
-    vocabulary: "submit: 提出する / at the latest: 遅くとも / by: 〜までに"
-  },
-  {
-    id: 5,
-    question: "The manager asked that everyone _____ on time for the meeting.",
-    choices: { A:"is", B:"are", C:"be", D:"will be" },
-    answer: "C",
-    translation: "マネージャーは全員が会議に時間通りに来るよう求めた。",
-    explanation: "ask that 節の中では仮定法現在を使います。主語に関わらず動詞の原形（be）を使うのがルールです。",
-    vocabulary: "ask that: 〜するよう求める / on time: 時間通りに / subjunctive: 仮定法"
-  }
-];
-
-// ═══════════════════════════════════════════════════════════════
 //  問題データ読み込み
 // ═══════════════════════════════════════════════════════════════
-const Q_DATA_KEY = 'toeic_questions_data';
+let questions = [];
+let progress  = {};
+let history   = [];
+let session   = null;
+let usingDemo = false;
+
+const DEMO_QUESTIONS = [
+  { id:1, question:"The committee _____ three times since the beginning of this year.",
+    choices:{A:"has met",B:"met",C:"meets",D:"had met"}, answer:"A",
+    translation:"委員会は今年の初めから3回会合を開いてきた。",
+    explanation:"since（〜以来）は現在完了形と一緒に使います。",
+    vocabulary:"committee: 委員会 / since: 〜以来" },
+  { id:2, question:"All employees are required to _____ their ID badges at all times.",
+    choices:{A:"wearing",B:"wore",C:"wear",D:"worn"}, answer:"C",
+    translation:"全従業員は常にIDバッジを着用することが求められています。",
+    explanation:"require + to 不定詞。are required to + 動詞の原形。",
+    vocabulary:"employee: 従業員 / require: 要求する / badge: バッジ" },
+  { id:3, question:"The new software _____ by the IT department next week.",
+    choices:{A:"will install",B:"will be installed",C:"is installing",D:"installs"}, answer:"B",
+    translation:"新しいソフトウェアは来週IT部門によってインストールされる予定です。",
+    explanation:"主語はインストールされる側なので受動態。未来受動態 = will be + 過去分詞。",
+    vocabulary:"software: ソフトウェア / install: インストールする" },
+];
 
 async function loadQuestions() {
-  // 1. ネットワークから取得（GitHub Pages / ローカルサーバー）
   try {
     const r = await fetch('questions.json');
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
     if (Array.isArray(data) && data.length > 0) {
-      questions = data;
-      usingDemo = false;
-      // オフライン用にキャッシュ保存
-      try { localStorage.setItem(Q_DATA_KEY, JSON.stringify(data)); } catch {}
+      questions = data; usingDemo = false;
       return true;
     }
   } catch {}
-
-  // 2. オフラインキャッシュから読み込み（ネットワーク不可時）
-  const cached = localStorage.getItem(Q_DATA_KEY);
-  if (cached) {
-    try {
-      const data = JSON.parse(cached);
-      if (Array.isArray(data) && data.length > 0) {
-        questions = data;
-        usingDemo = false;
-        return true;
-      }
-    } catch {}
-  }
-
-  // 3. デモモード（questions.json 未コミット）
-  questions = DEMO_QUESTIONS;
-  usingDemo = true;
+  questions = DEMO_QUESTIONS; usingDemo = true;
   return false;
 }
 
-// ── JSONインポート ────────────────────────────────────────────────
-function openImport() {
-  document.getElementById('import-modal').style.display = 'flex';
-  setTimeout(() => document.getElementById('import-textarea').focus(), 100);
-}
-
-function closeImport() {
-  document.getElementById('import-modal').style.display = 'none';
-  document.getElementById('import-textarea').value = '';
-}
-
+function openImport()  { document.getElementById('import-modal').style.display='flex'; setTimeout(()=>document.getElementById('import-textarea').focus(),100); }
+function closeImport() { document.getElementById('import-modal').style.display='none'; document.getElementById('import-textarea').value=''; }
 function doImport() {
   const text = document.getElementById('import-textarea').value.trim();
   if (!text) { alert('テキストが空です'); return; }
   try {
     const data = JSON.parse(text);
     if (!Array.isArray(data) || data.length === 0) throw new Error();
-    localStorage.setItem(Q_DATA_KEY, text);
-    questions = data;
-    usingDemo = false;
-    closeImport();
-    showView('dashboard');
+    questions = data; usingDemo = false;
+    closeImport(); showView('dashboard');
     alert(`✅ ${data.length}問を読み込みました！`);
-  } catch {
-    alert('エラー：正しいJSONではありません。ブックマークレット実行後のテキストを全選択してコピーし、貼り付けてください。');
-  }
+  } catch { alert('エラー：正しいJSONではありません。'); }
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  キュービルダー
 // ═══════════════════════════════════════════════════════════════
-function buildQueue(mode, shuffle = true) {
+function usableQuestions(genreId) {
+  let qs = questions.filter(q => q.answer && q.choices && q.choices.A);
+  if (genreId && genreId !== 'all') qs = qs.filter(q => classifyQuestion(q) === genreId);
+  return qs;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function buildQueue(mode, genreId) {
+  const qs = usableQuestions(genreId);
   let ids;
   if (mode === 'review') {
-    ids = questions
-      .filter(q => {
-        const p = progress[q.id];
-        return p && p.level > 0 && isDue(p);
-      })
-      .map(q => q.id);
+    ids = qs.filter(q => { const p=progress[q.id]; return p && p.level>0 && isDue(p); }).map(q=>q.id);
   } else if (mode === 'new') {
-    ids = questions
-      .filter(q => !progress[q.id] || progress[q.id].level === 0)
-      .map(q => q.id)
-      .slice(0, 20);
+    ids = qs.filter(q => !progress[q.id] || progress[q.id].level===0).map(q=>q.id).slice(0,20);
+  } else if (mode === 'daily') {
+    return buildDailyQueue(genreId);
   } else {
-    // 'all': 未習得の全問題
-    ids = questions
-      .filter(q => {
-        const p = progress[q.id];
-        return !p || p.level < REVIEW_INTERVALS.length;
-      })
-      .map(q => q.id);
+    ids = qs.filter(q => { const p=progress[q.id]; return !p || p.level < REVIEW_INTERVALS.length; }).map(q=>q.id);
   }
+  return shuffle(ids);
+}
 
-  if (shuffle) {
-    for (let i = ids.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [ids[i], ids[j]] = [ids[j], ids[i]];
-    }
+function buildDailyQueue(genreId) {
+  const today  = new Date(); today.setHours(0,0,0,0);
+  const user   = getGhUser();
+  const uid    = user ? user.login : 'guest';
+  const dayKey = `toeic_daily_${uid}_${today.toISOString().slice(0,10)}${genreId?'_'+genreId:''}`;
+  const saved  = sessionStorage.getItem(dayKey);
+  if (saved) {
+    try { const q = JSON.parse(saved); if (Array.isArray(q) && q.length) return q; } catch {}
   }
-  return ids;
+  const qs   = usableQuestions(genreId);
+  const due  = shuffle(qs.filter(q => { const p=progress[q.id]; return p && p.level>0 && isDue(p); }).map(q=>q.id));
+  const newQ = shuffle(qs.filter(q => !progress[q.id] || progress[q.id].level===0).map(q=>q.id));
+  const combined = [...due, ...newQ].slice(0, DAILY_TARGET);
+  if (!combined.length) return shuffle(qs.map(q=>q.id).slice(0, DAILY_TARGET));
+  sessionStorage.setItem(dayKey, JSON.stringify(combined));
+  return combined;
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  統計ヘルパー
 // ═══════════════════════════════════════════════════════════════
-function calcStats() {
-  const total    = questions.length;
-  const studied  = Object.keys(progress).length;
-  const mastered = Object.values(progress).filter(p => p.level >= REVIEW_INTERVALS.length).length;
-  const dueToday = questions.filter(q => isDue(progress[q.id]) && progress[q.id]?.level > 0).length;
-  const newCount = questions.filter(q => !progress[q.id] || progress[q.id].level === 0).length;
-
-  const levelCounts = new Array(REVIEW_INTERVALS.length + 1).fill(0);
-  questions.forEach(q => {
-    const lv = progress[q.id]?.level ?? 0;
-    levelCounts[Math.min(lv, REVIEW_INTERVALS.length)]++;
-  });
-
-  const history = loadHistory();
-  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-  const todayAnswers = history.filter(h => h.ts >= todayStart.getTime());
-  const todayCorrect = todayAnswers.filter(h => h.correct).length;
-  const todayTotal   = todayAnswers.length;
-
+function calcStats(genreId) {
+  const qs      = usableQuestions(genreId);
+  const total   = qs.length;
+  const studied = qs.filter(q => (progress[q.id]?.level??0) > 0).length;
+  const mastered= qs.filter(q => (progress[q.id]?.level??0) >= REVIEW_INTERVALS.length).length;
+  const dueToday= qs.filter(q => isDue(progress[q.id]) && (progress[q.id]?.level??0) > 0).length;
+  const newCount= qs.filter(q => !progress[q.id] || progress[q.id].level===0).length;
+  const levelCounts = new Array(REVIEW_INTERVALS.length+1).fill(0);
+  qs.forEach(q => { const lv=progress[q.id]?.level??0; levelCounts[Math.min(lv,REVIEW_INTERVALS.length)]++; });
+  const history     = loadHistory();
+  const todayStart  = new Date(); todayStart.setHours(0,0,0,0);
+  const todayAns    = history.filter(h => h.ts >= todayStart.getTime());
+  const todayCorrect= todayAns.filter(h => h.correct).length;
+  const todayTotal  = todayAns.length;
   return { total, studied, mastered, dueToday, newCount, levelCounts, todayCorrect, todayTotal };
+}
+
+function getTodayStats() {
+  const history    = loadHistory();
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const todayAns   = history.filter(h => h.ts >= todayStart.getTime());
+  return { done: todayAns.length, correct: todayAns.filter(h => h.correct).length };
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  ビュー：ダッシュボード
 // ═══════════════════════════════════════════════════════════════
 function renderDashboard() {
-  const s = calcStats();
-  const pct = s.total ? Math.round(s.mastered / s.total * 100) : 0;
-
-  const reviewAlert = s.dueToday > 0
-    ? `<div class="alert">
-        <span class="alert-icon">🔔</span>
-        <span><b>${s.dueToday}問</b>の復習が今日の予定です。記憶が薄れる前に復習しましょう！</span>
-       </div>`
-    : (s.studied > 0
-        ? `<div class="alert alert-success">
-            <span class="alert-icon">✅</span>
-            <span>今日の復習はすべて完了しています。</span>
-           </div>`
-        : '');
-
+  const s              = calcStats();
+  const pct            = s.total ? Math.round(s.mastered/s.total*100) : 0;
+  const { done: todayDone } = getTodayStats();
+  const todayPct       = Math.min(100, Math.round(todayDone / DAILY_TARGET * 100));
   const demoWarn = usingDemo
     ? `<div class="alert" style="background:#eff6ff;border-color:#bfdbfe;margin-bottom:16px">
         <span class="alert-icon">ℹ️</span>
-        <div style="flex:1">
-          <b>デモモード</b>（5問）で動作中です。<br>
-          <span style="font-size:.85rem;color:var(--muted)">
-            全問データを使うには：<br>
-            ① ブックマークレットを実行して JSON をコピー<br>
-            ② GitHub の <code>questions.json</code> として保存してコミット<br>
-            ③ ページをリロード
-          </span><br>
-          <button class="btn btn-outline" style="margin-top:10px;padding:6px 14px;font-size:.82rem"
-            onclick="openImport()">直接貼り付けで読み込む（代替手段）</button>
-        </div>
-       </div>`
-    : '';
+        <div style="flex:1"><b>デモモード</b>（3問）で動作中です。<br>
+          <span style="font-size:.85rem;color:var(--muted)">questions.json を GitHub にコミットするとフル問題で動作します。</span><br>
+          <button class="btn btn-outline" style="margin-top:10px;padding:6px 14px;font-size:.82rem" onclick="openImport()">JSONを直接貼り付け</button>
+        </div></div>` : '';
 
-  return `
-    ${demoWarn}
-    ${reviewAlert}
+  const dailySection = todayDone >= DAILY_TARGET
+    ? `<div class="daily-hero">
+        <div class="daily-hero-title">今日の100問</div>
+        <div class="daily-hero-bar"><div class="daily-hero-bar-fill" style="width:100%"></div></div>
+        <div class="daily-hero-cnt">${todayDone}問 完了（${todayPct}%）</div>
+        <div class="daily-complete">🎉 本日の100問達成！お疲れ様でした！</div>
+      </div>`
+    : `<div class="daily-hero">
+        <div class="daily-hero-title">今日の100問</div>
+        <div class="daily-hero-bar"><div class="daily-hero-bar-fill" style="width:${todayPct}%"></div></div>
+        <div class="daily-hero-cnt">${todayDone} / ${DAILY_TARGET}問 完了（${todayPct}%）</div>
+        <button class="daily-hero-action" onclick="startSession('daily')">
+          ${todayDone > 0 ? '▶ 続きから学習する' : '▶ 今日の学習を始める'}
+        </button>
+      </div>`;
 
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-num s-blue">${s.total}</div>
-        <div class="stat-label">総問題数</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num s-amber">${s.dueToday}</div>
-        <div class="stat-label">今日の復習</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num s-purple">${s.newCount}</div>
-        <div class="stat-label">未学習</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num s-green">${s.mastered}</div>
-        <div class="stat-label">定着済み</div>
-      </div>
-    </div>
-
+  return `${demoWarn}${dailySection}
     <div class="card" style="margin-bottom:16px">
       <div class="card-title">全体進捗</div>
       <div style="font-size:1.8rem;font-weight:800;color:var(--blue)">${pct}%</div>
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-      <div class="progress-labels">
-        <span>0</span>
-        <span>${s.mastered} / ${s.total} 定着</span>
-      </div>
+      <div class="progress-labels"><span>定着: ${s.mastered}</span><span>残り: ${s.total-s.mastered}</span></div>
     </div>
-
-    <div class="action-grid">
-      <button class="action-btn" onclick="startSession('review')" ${s.dueToday===0?'disabled style="opacity:.5;cursor:not-allowed"':''}>
-        <span class="icon">🔄</span>
-        <span>復習する</span>
-        <span class="sub">${s.dueToday}問 予定</span>
-      </button>
-      <button class="action-btn" onclick="startSession('new')">
-        <span class="icon">✨</span>
-        <span>新規学習</span>
-        <span class="sub">${Math.min(s.newCount,20)}問</span>
-      </button>
-      <button class="action-btn" onclick="startSession('all')">
-        <span class="icon">📖</span>
-        <span>全問学習</span>
-        <span class="sub">${s.total}問</span>
-      </button>
-    </div>
-
     <div class="card">
-      <div class="card-title">エビングハウス 記憶レベル分布</div>
+      <div class="card-title">記憶レベル分布</div>
       <div class="level-bars" id="lvbars"></div>
-      <div class="review-schedule" style="margin-top:14px">
-        ${LEVEL_LABELS.map((l,i)=>`<span class="level-chip lv${Math.min(i,6)}">${l}: ${s.levelCounts[i]??0}問</span>`).join('')}
+      <div class="review-schedule" style="margin-top:12px">
+        ${LEVEL_LABELS.map((l,i)=>`<span class="level-chip lv${i}">${l}: ${s.levelCounts[i]??0}</span>`).join('')}
       </div>
     </div>
-  `;
-}
-
-function renderLevelBars(stats) {
-  const el = document.getElementById('lvbars');
-  if (!el) return;
-  const max = Math.max(...stats.levelCounts, 1);
-  el.innerHTML = stats.levelCounts.map((cnt, i) => {
-    const h = Math.max(4, Math.round(cnt / max * 52));
-    return `<div class="level-bar-wrap">
-      <div class="level-bar" style="height:${h}px;background:${LEVEL_COLORS[Math.min(i,6)]}"></div>
-      <div class="level-bar-label">Lv${i}</div>
+    <div class="card">
+      <div class="card-title">その他の学習</div>
+      <div class="action-grid" style="margin-bottom:0">
+        <button class="action-btn" onclick="startSession('review')" ${s.dueToday===0?'disabled':''}>
+          <span class="icon">🔄</span><span>復習</span><span class="sub">${s.dueToday}問</span>
+        </button>
+        <button class="action-btn" onclick="showView('settings')">
+          <span class="icon">⚙️</span><span>設定</span><span class="sub">ログアウトなど</span>
+        </button>
+      </div>
     </div>`;
-  }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  ビュー：問題
+//  ビュー：学習メニュー
 // ═══════════════════════════════════════════════════════════════
-function renderQuestion() {
-  if (!session || session.idx >= session.queue.length) {
-    renderResult();
+let selectedGenre = null;
+
+function renderStudyMenu() {
+  const s = calcStats(selectedGenre);
+  const genreCountMap = {};
+  const usable = questions.filter(q => q.answer && q.choices && q.choices.A);
+  usable.forEach(q => { const g = classifyQuestion(q); genreCountMap[g] = (genreCountMap[g]||0)+1; });
+
+  return `
+    <div class="card">
+      <div class="card-title">ジャンルを選択（任意）</div>
+      <div class="genre-grid">
+        <button class="genre-btn${!selectedGenre?'  selected':''}" onclick="setGenre(null)">
+          <span class="g-emoji">📚</span><span>全ジャンル</span>
+          <span class="g-cnt">${usable.length}問</span>
+        </button>
+        ${GENRE_CATEGORIES.map(cat => `
+          <button class="genre-btn${selectedGenre===cat.id?' selected':''}" onclick="setGenre('${cat.id}')">
+            <span class="g-emoji">${cat.emoji}</span><span>${cat.label}</span>
+            <span class="g-cnt">${genreCountMap[cat.id]||0}問</span>
+          </button>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">学習モード${selectedGenre ? ' — '+GENRE_CATEGORIES.find(c=>c.id===selectedGenre)?.label : ''}</div>
+      <div class="action-grid" style="margin-bottom:0">
+        <button class="action-btn" onclick="startSession('daily',selectedGenre)">
+          <span class="icon">📅</span><span>今日の100問</span>
+          <span class="sub">復習＋新規を組み合わせ</span>
+        </button>
+        <button class="action-btn" onclick="startSession('review',selectedGenre)" ${s.dueToday===0?'disabled':''}>
+          <span class="icon">🔄</span><span>復習のみ</span><span class="sub">${s.dueToday}問</span>
+        </button>
+        <button class="action-btn" onclick="startSession('new',selectedGenre)">
+          <span class="icon">✨</span><span>新規のみ</span><span class="sub">${Math.min(s.newCount,20)}問</span>
+        </button>
+        <button class="action-btn" onclick="startSession('all',selectedGenre)">
+          <span class="icon">📖</span><span>全問</span><span class="sub">${s.total}問</span>
+        </button>
+      </div>
+    </div>`;
+}
+
+function setGenre(id) {
+  selectedGenre = id;
+  document.getElementById('view').innerHTML = renderStudyMenu();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  セッション開始・問題表示
+// ═══════════════════════════════════════════════════════════════
+function startSession(mode, genreId) {
+  const queue = buildQueue(mode, genreId || selectedGenre);
+  if (!queue.length) {
+    alert(mode==='review' ? '今日の復習予定はありません！' : '問題がありません。');
     return;
   }
+  session = { queue, idx:0, correct:0, wrong:0, mode, genreId: genreId||selectedGenre };
+  ['nav-dash','nav-stats'].forEach(id => document.getElementById(id)?.classList.remove('active'));
+  document.getElementById('nav-study').classList.add('active');
+  renderQuestion();
+}
 
-  const qid = session.queue[session.idx];
-  const q   = questions.find(x => x.id === qid);
+function renderQuestion() {
+  if (!session || session.idx >= session.queue.length) { renderResult(); return; }
+  const qid   = session.queue[session.idx];
+  const q     = questions.find(x => x.id === qid);
   if (!q) { session.idx++; renderQuestion(); return; }
-
-  const p   = progress[qid];
-  const lv  = p?.level ?? 0;
+  const p     = progress[qid];
+  const lv    = p?.level ?? 0;
   const total = session.queue.length;
-
-  const qText = q.question.replace(/_{3,}/g, '<span class="q-blank">　　　　</span>');
+  const qText = q.question.replace(/_{3,}|——-+/g, '<span class="q-blank">　　　　</span>');
+  const modeLabel = { daily:'📅 今日の100問', review:'🔄 復習', new:'✨ 新規', all:'📖 全問' }[session.mode] || '📖 学習';
 
   document.getElementById('view').innerHTML = `
     <div class="session-header">
-      <div class="session-info">${session.mode === 'review' ? '🔄 復習' : '📖 学習'}モード</div>
-      <div class="session-progress">${session.idx + 1} / ${total}</div>
+      <div class="session-info">${modeLabel}</div>
+      <div class="session-progress">${session.idx+1} / ${total}</div>
     </div>
     <div style="margin-bottom:12px">
-      <div class="progress-bar">
-        <div class="progress-fill" style="width:${Math.round(session.idx/total*100)}%"></div>
-      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(session.idx/total*100)}%"></div></div>
     </div>
-
     <div class="q-card">
       <div class="q-num">
         第 ${q.id} 問
-        <span class="level-chip lv${Math.min(lv,6)}" style="margin-left:8px">${LEVEL_LABELS[Math.min(lv,7)]}</span>
+        <span class="level-chip lv${Math.min(lv,7)}" style="margin-left:8px">${LEVEL_LABELS[Math.min(lv,7)]}</span>
       </div>
       <div class="q-text">${qText}</div>
       <div class="choices" id="choices">
-        ${['A','B','C','D'].map(letter => `
-          <button class="choice-btn" id="choice-${letter}" onclick="selectAnswer('${letter}','${qid}')">
-            <span class="choice-label">${letter}</span>
-            <span>${escHtml(q.choices[letter] || '')}</span>
-          </button>
-        `).join('')}
+        ${['A','B','C','D'].map(l => `
+          <button class="choice-btn" id="choice-${l}" onclick="selectAnswer('${l}','${qid}')">
+            <span class="choice-label">${l}</span>
+            <span>${escHtml(q.choices[l]||'')}</span>
+          </button>`).join('')}
       </div>
     </div>
-    <div id="feedback"></div>
-  `;
+    <div id="feedback"></div>`;
 }
 
 function selectAnswer(selected, qid) {
   const q       = questions.find(x => x.id == qid);
   const correct = selected === q.answer;
-
-  // ボタン無効化＋色付け
   ['A','B','C','D'].forEach(l => {
-    const btn = document.getElementById('choice-' + l);
+    const btn = document.getElementById('choice-'+l);
     btn.disabled = true;
     if (l === q.answer) btn.classList.add('correct');
     else if (l === selected && !correct) btn.classList.add('wrong');
   });
-
-  // 進捗更新
   progress = updateQProgress(progress, qid, correct);
   saveProgress(progress);
   recordStudy(qid, correct);
   if (correct) session.correct++; else session.wrong++;
-
-  // 次回復習日
-  const p = progress[qid];
+  const p        = progress[qid];
   const nextDate = formatNextReview(p);
-
-  // フィードバック表示
-  const fb = document.getElementById('feedback');
-  fb.innerHTML = `
-    <div class="feedback ${correct ? 'correct-fb' : 'wrong-fb'}">
+  document.getElementById('feedback').innerHTML = `
+    <div class="feedback ${correct?'correct-fb':'wrong-fb'}">
       <div class="feedback-title">${correct ? '✅ 正解！' : `❌ 不正解（正解: (${q.answer}) ${escHtml(q.choices[q.answer])}）`}</div>
       <div style="font-size:.82rem;color:var(--muted);margin-bottom:10px">
-        次回の復習: <b>${nextDate}</b>（記憶レベル: Lv${p.level} → ${LEVEL_LABELS[Math.min(p.level,7)]}）
+        次回の復習: <b>${nextDate}</b>
+        <span class="level-chip lv${Math.min(p.level,7)}" style="margin-left:6px">${LEVEL_LABELS[Math.min(p.level,7)]}</span>
       </div>
-      ${q.translation ? `<div class="detail-section">
-        <div class="detail-label">訳</div>
-        <div class="detail-text">${escHtml(q.translation)}</div>
-      </div>` : ''}
-      ${q.explanation ? `<div class="detail-section">
-        <div class="detail-label">解説</div>
-        <div class="detail-text">${escHtml(q.explanation)}</div>
-      </div>` : ''}
-      ${q.vocabulary ? `<div class="detail-section">
-        <div class="detail-label">語彙</div>
-        <div class="detail-text">${escHtml(q.vocabulary)}</div>
-      </div>` : ''}
+      ${q.translation  ? `<div class="detail-section"><div class="detail-label">訳</div><div class="detail-text">${escHtml(q.translation)}</div></div>` : ''}
+      ${q.explanation  ? `<div class="detail-section"><div class="detail-label">解説</div><div class="detail-text">${escHtml(q.explanation)}</div></div>` : ''}
+      ${q.vocabulary   ? `<div class="detail-section"><div class="detail-label">語彙</div><div class="detail-text">${escHtml(q.vocabulary)}</div></div>` : ''}
     </div>
     <button class="next-btn" onclick="nextQuestion()">
-      ${session.idx + 1 < session.queue.length ? '次の問題 →' : '結果を見る'}
-    </button>
-  `;
+      ${session.idx+1 < session.queue.length ? '次の問題 →' : '結果を見る'}
+    </button>`;
   updateBadge();
 }
 
 function nextQuestion() {
   session.idx++;
   renderQuestion();
-  document.getElementById('view').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('view').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  ビュー：セッション結果
+//  セッション結果
 // ═══════════════════════════════════════════════════════════════
 function renderResult() {
   const total = session.correct + session.wrong;
-  const pct   = total ? Math.round(session.correct / total * 100) : 0;
-  const emoji = pct >= 90 ? '🎉' : pct >= 70 ? '😊' : pct >= 50 ? '🤔' : '💪';
-  const msg   = pct >= 90 ? '素晴らしい！' : pct >= 70 ? 'よくできました！' : pct >= 50 ? 'もう少し！' : '復習を続けましょう！';
-  const s     = calcStats();
-  const due   = s.dueToday;
-
+  const pct   = total ? Math.round(session.correct/total*100) : 0;
+  const emoji = pct>=90?'🎉':pct>=70?'😊':pct>=50?'🤔':'💪';
+  const msg   = pct>=90?'素晴らしい！':pct>=70?'よくできました！':pct>=50?'もう少し！':'復習を続けましょう！';
+  const s     = calcStats(session.genreId);
   document.getElementById('view').innerHTML = `
     <div class="card result-card">
       <div class="result-emoji">${emoji}</div>
       <div class="result-title">${msg}</div>
       <div class="result-sub">正解率 ${pct}%</div>
       <div class="result-score">
-        <div class="score-item">
-          <div class="score-num" style="color:var(--green)">${session.correct}</div>
-          <div class="score-lbl">正解</div>
-        </div>
-        <div class="score-item">
-          <div class="score-num" style="color:var(--red)">${session.wrong}</div>
-          <div class="score-lbl">不正解</div>
-        </div>
-        <div class="score-item">
-          <div class="score-num" style="color:var(--blue)">${total}</div>
-          <div class="score-lbl">合計</div>
-        </div>
+        <div class="score-item"><div class="score-num" style="color:var(--green)">${session.correct}</div><div class="score-lbl">正解</div></div>
+        <div class="score-item"><div class="score-num" style="color:var(--red)">${session.wrong}</div><div class="score-lbl">不正解</div></div>
+        <div class="score-item"><div class="score-num" style="color:var(--blue)">${total}</div><div class="score-lbl">合計</div></div>
       </div>
-      ${due > 0 ? `<div class="alert" style="text-align:left;margin-bottom:20px">
-        <span class="alert-icon">🔔</span>
-        <span>残り <b>${due}問</b> の復習が予定されています</span>
-      </div>` : ''}
+      ${s.dueToday>0?`<div class="alert" style="text-align:left;margin-bottom:20px"><span class="alert-icon">🔔</span><span>残り <b>${s.dueToday}問</b> の復習が予定されています</span></div>`:''}
       <div class="btn-row">
-        ${due > 0 ? `<button class="btn btn-primary" onclick="startSession('review')">復習する (${due}問)</button>` : ''}
-        <button class="btn btn-primary" onclick="startSession('new')">新規学習</button>
+        <button class="btn btn-primary" onclick="startSession('daily',session?.genreId)">今日の100問を続ける</button>
+        ${s.dueToday>0?`<button class="btn btn-outline" onclick="startSession('review',session?.genreId)">復習 (${s.dueToday}問)</button>`:''}
         <button class="btn btn-outline" onclick="showView('dashboard')">ホームへ</button>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1095,108 +1065,112 @@ function renderResult() {
 // ═══════════════════════════════════════════════════════════════
 function renderStats() {
   const s   = calcStats();
-  const acc = s.todayTotal ? Math.round(s.todayCorrect / s.todayTotal * 100) : 0;
-  const pct = s.total ? Math.round(s.mastered / s.total * 100) : 0;
+  const acc = s.todayTotal ? Math.round(s.todayCorrect/s.todayTotal*100) : 0;
+  const pct = s.total ? Math.round(s.mastered/s.total*100) : 0;
 
-  // 直近30日のカレンダー
-  const history = loadHistory();
-  const studyDays = new Set(history.map(h => {
-    const d = new Date(h.ts); d.setHours(0,0,0,0); return d.getTime();
-  }));
+  // カレンダー（直近35日 → 正解数ベースで色分け）
+  const history      = loadHistory();
+  const correctByDay = {}, totalByDay = {};
+  history.forEach(h => {
+    const d = new Date(h.ts); d.setHours(0,0,0,0);
+    const k = d.getTime();
+    totalByDay[k] = (totalByDay[k]||0) + 1;
+    if (h.correct) correctByDay[k] = (correctByDay[k]||0) + 1;
+  });
   const today = new Date(); today.setHours(0,0,0,0);
-  const calCells = [];
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(today - i * DAY_MS);
+  const cells = [];
+  for (let i = 34; i >= 0; i--) {
+    const d = new Date(today.getTime() - i*DAY_MS);
     d.setHours(0,0,0,0);
-    const isToday   = d.getTime() === today.getTime();
-    const hasStudy  = studyDays.has(d.getTime());
-    calCells.push(`<div class="cal-day${hasStudy?' has-study':''}${isToday?' today':''}"></div>`);
+    const correct  = correctByDay[d.getTime()] || 0;
+    const total    = totalByDay[d.getTime()]   || 0;
+    const isToday  = d.getTime() === today.getTime();
+    const cls      = correct===0?'':correct<25?'s1':correct<50?'s2':correct<75?'s3':correct<90?'s4':'s5';
+    const day      = d.getDate();
+    const mm       = d.getMonth()+1;
+    const label    = day===1 || i===34 ? `${mm}/${day}` : String(day);
+    cells.push(`<div class="cal-day${cls?' '+cls:''}${isToday?' today':''}" title="${mm}/${day} 正解:${correct}/${total}">
+      <span class="cal-day-num">${label}</span>
+      ${correct>0?`<span class="cal-cnt">${correct}</span>`:''}
+    </div>`);
   }
+
+  const upcomingHtml = renderUpcomingReviews();
 
   return `
     <div class="card">
       <div class="card-title">今日の学習</div>
       <div class="stats-detail-grid">
-        <div class="mini-stat">
-          <div class="mini-stat-num">${s.todayTotal}</div>
-          <div class="mini-stat-lbl">解答数</div>
-        </div>
-        <div class="mini-stat">
-          <div class="mini-stat-num" style="color:var(--green)">${acc}%</div>
-          <div class="mini-stat-lbl">正解率</div>
-        </div>
-        <div class="mini-stat">
-          <div class="mini-stat-num" style="color:var(--amber)">${s.dueToday}</div>
-          <div class="mini-stat-lbl">今日の復習予定</div>
-        </div>
-        <div class="mini-stat">
-          <div class="mini-stat-num" style="color:var(--purple)">${s.mastered}</div>
-          <div class="mini-stat-lbl">定着済み</div>
-        </div>
+        <div class="mini-stat"><div class="mini-stat-num">${s.todayTotal}</div><div class="mini-stat-lbl">解答数</div></div>
+        <div class="mini-stat"><div class="mini-stat-num" style="color:var(--green)">${acc}%</div><div class="mini-stat-lbl">正解率</div></div>
+        <div class="mini-stat"><div class="mini-stat-num" style="color:var(--amber)">${s.dueToday}</div><div class="mini-stat-lbl">今日の復習予定</div></div>
+        <div class="mini-stat"><div class="mini-stat-num" style="color:var(--purple)">${s.mastered}</div><div class="mini-stat-lbl">定着済み</div></div>
       </div>
     </div>
-
     <div class="card">
       <div class="card-title">全体進捗 (${pct}%)</div>
-      <div class="progress-bar" style="height:12px">
-        <div class="progress-fill" style="width:${pct}%"></div>
-      </div>
-      <div class="progress-labels">
-        <span>学習済み: ${s.studied}問</span>
-        <span>定着: ${s.mastered} / ${s.total}</span>
-      </div>
+      <div class="progress-bar" style="height:12px"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="progress-labels"><span>学習済み: ${s.studied}問</span><span>定着: ${s.mastered} / ${s.total}</span></div>
     </div>
-
     <div class="card">
-      <div class="card-title">エビングハウス 記憶レベル分布</div>
+      <div class="card-title">記憶レベル分布（グラデーション）</div>
       <div class="level-bars" id="lvbars-stats"></div>
       <div class="review-schedule" style="margin-top:14px">
-        ${LEVEL_LABELS.map((l,i)=>`<span class="level-chip lv${Math.min(i,6)}">${l}: ${s.levelCounts[i]??0}問</span>`).join('')}
+        ${LEVEL_LABELS.map((l,i)=>`<span class="level-chip lv${i}">${l}: ${s.levelCounts[i]??0}問</span>`).join('')}
       </div>
     </div>
-
     <div class="card">
-      <div class="card-title">学習カレンダー（直近30日）</div>
-      <div class="calendar-grid">${calCells.join('')}</div>
-      <div style="font-size:.75rem;color:var(--muted);margin-top:8px">
-        ■ 学習あり &nbsp; □ 学習なし &nbsp; 枠=今日
+      <div class="card-title">学習カレンダー（直近35日 — 正解数）</div>
+      <div style="display:flex;gap:8px;font-size:.7rem;color:var(--muted);margin-bottom:8px;flex-wrap:wrap">
+        <span>□ 0問</span>
+        <span style="color:#1e40af">■ 1〜24</span>
+        <span style="color:#2563eb">■ 25〜49</span>
+        <span style="color:#1d4ed8">■ 50〜74</span>
+        <span style="color:#1e3a8a">■ 75〜89</span>
+        <span style="color:#1e3a8a;font-weight:800">■ 90+</span>
       </div>
+      <div class="calendar-grid">${cells.join('')}</div>
     </div>
-
+    <div class="card">
+      <div class="card-title">ジャンル別正答率</div>
+      ${GENRE_CATEGORIES.map(cat => {
+        const catQs = usableQuestions(cat.id);
+        let cor = 0, tot = 0;
+        catQs.forEach(q => { const p=progress[q.id]; if(p){ cor+=(p.correctCount||0); tot+=(p.correctCount||0)+(p.wrongCount||0); } });
+        const acc = tot ? Math.round(cor/tot*100) : 0;
+        const h   = Math.round(acc * 1.2);
+        const col = tot ? `hsl(${h},70%,45%)` : 'var(--muted)';
+        const lbl = tot ? `${acc}%` : '未';
+        return `<div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:.88rem;font-weight:600">${cat.emoji} ${cat.label}
+              <span style="color:var(--muted);font-weight:400;font-size:.78rem"> ${catQs.length}問</span>
+            </span>
+            <span style="font-weight:800;color:${col}">${lbl}</span>
+          </div>
+          <div class="progress-bar" style="height:7px">
+            <div class="progress-fill" style="width:${acc}%;background:${col};transition:width .4s,background .4s"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
     <div class="card">
       <div class="card-title">次回復習スケジュール</div>
-      ${renderUpcomingReviews()}
-    </div>
-
-    <div style="text-align:center;margin-top:16px;display:flex;flex-direction:column;gap:10px;align-items:center">
-      <button class="btn btn-outline" style="font-size:.8rem"
-        onclick="refreshQuestions()">
-        問題データを再取得（キャッシュ更新）
-      </button>
-      <button class="btn btn-outline" style="font-size:.8rem;color:var(--red);border-color:var(--red)"
-        onclick="if(confirm('学習の進捗・履歴をすべてリセットしますか？\n（問題データは消えません）'))resetAll()">
-        進捗をリセット
-      </button>
-    </div>
-  `;
+      ${upcomingHtml}
+    </div>`;
 }
 
 function renderUpcomingReviews() {
   const upcoming = questions
-    .filter(q => {
-      const p = progress[q.id];
-      return p && p.level > 0 && p.nextReview;
-    })
-    .sort((a, b) => (progress[a.id].nextReview || 0) - (progress[b.id].nextReview || 0))
-    .slice(0, 10);
-
+    .filter(q => { const p=progress[q.id]; return p && p.level>0 && p.nextReview; })
+    .sort((a,b) => (progress[a.id].nextReview||0)-(progress[b.id].nextReview||0))
+    .slice(0,10);
   if (!upcoming.length) return '<div style="color:var(--muted);font-size:.9rem">まだ復習予定がありません</div>';
-
   return upcoming.map(q => {
     const p = progress[q.id];
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.88rem">
       <span>Q${q.id}: ${escHtml(q.question.slice(0,40))}…</span>
-      <span class="level-chip lv${Math.min(p.level,6)}">${formatNextReview(p)}</span>
+      <span class="level-chip lv${Math.min(p.level,7)}">${formatNextReview(p)}</span>
     </div>`;
   }).join('');
 }
@@ -1205,10 +1179,10 @@ function renderLevelBarsById(id, stats) {
   const el = document.getElementById(id);
   if (!el) return;
   const max = Math.max(...stats.levelCounts, 1);
-  el.innerHTML = stats.levelCounts.map((cnt, i) => {
-    const h = Math.max(4, Math.round(cnt / max * 52));
+  el.innerHTML = stats.levelCounts.map((cnt,i) => {
+    const h = Math.max(4, Math.round(cnt/max*52));
     return `<div class="level-bar-wrap">
-      <div class="level-bar" style="height:${h}px;background:${LEVEL_COLORS[Math.min(i,6)]}"></div>
+      <div class="level-bar" style="height:${h}px;background:${LEVEL_COLORS[Math.min(i,7)]}"></div>
       <div class="level-bar-label">Lv${i}</div>
     </div>`;
   }).join('');
@@ -1219,112 +1193,98 @@ function renderLevelBarsById(id, stats) {
 // ═══════════════════════════════════════════════════════════════
 function showView(name) {
   const view = document.getElementById('view');
-  ['dash','study','stats'].forEach(id => {
-    document.getElementById('nav-' + id)?.classList.remove('active');
-  });
-
+  ['dash','study','stats','settings'].forEach(id => document.getElementById('nav-'+id)?.classList.remove('active'));
   if (name === 'dashboard') {
     document.getElementById('nav-dash').classList.add('active');
     view.innerHTML = renderDashboard();
     renderLevelBarsById('lvbars', calcStats());
-
   } else if (name === 'stats') {
     document.getElementById('nav-stats').classList.add('active');
     view.innerHTML = renderStats();
     renderLevelBarsById('lvbars-stats', calcStats());
-
   } else if (name === 'study-menu') {
     document.getElementById('nav-study').classList.add('active');
-    const s = calcStats();
-    view.innerHTML = `
-      <div class="card" style="text-align:center;padding:32px">
-        <div style="font-size:2rem;margin-bottom:12px">📚</div>
-        <div style="font-size:1.2rem;font-weight:800;margin-bottom:24px">学習モードを選んでください</div>
-        <div class="action-grid" style="max-width:500px;margin:0 auto">
-          <button class="action-btn" onclick="startSession('review')" ${s.dueToday===0?'style="opacity:.5;cursor:not-allowed"disabled':''}>
-            <span class="icon">🔄</span><span>復習</span><span class="sub">${s.dueToday}問</span>
-          </button>
-          <button class="action-btn" onclick="startSession('new')">
-            <span class="icon">✨</span><span>新規</span><span class="sub">${Math.min(s.newCount,20)}問</span>
-          </button>
-          <button class="action-btn" onclick="startSession('all')">
-            <span class="icon">📖</span><span>全問</span><span class="sub">${s.total}問</span>
-          </button>
-        </div>
-      </div>`;
+    view.innerHTML = renderStudyMenu();
+  } else if (name === 'settings') {
+    document.getElementById('nav-settings').classList.add('active');
+    view.innerHTML = renderSettings();
   }
   updateBadge();
 }
 
-function startSession(mode) {
-  const queue = buildQueue(mode);
-  if (queue.length === 0) {
-    alert(mode === 'review' ? '今日の復習予定はありません！' : '問題がありません。');
-    return;
-  }
-  session = { queue, idx: 0, correct: 0, wrong: 0, mode };
-  document.getElementById('nav-study').classList.add('active');
-  ['nav-dash','nav-stats'].forEach(id => document.getElementById(id)?.classList.remove('active'));
-  renderQuestion();
+// ═══════════════════════════════════════════════════════════════
+//  ビュー：設定
+// ═══════════════════════════════════════════════════════════════
+function renderSettings() {
+  const user    = getGhUser();
+  const studied = Object.keys(progress).length;
+  const mastered= Object.values(progress).filter(p => p.level >= REVIEW_INTERVALS.length).length;
+  const avatarUrl = user?.avatar_url;
+  const avatarHtml = avatarUrl
+    ? `<img src="${avatarUrl}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+    : `<div style="width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;flex-shrink:0">${user ? user.login.charAt(0).toUpperCase() : '?'}</div>`;
+  return `
+    <div class="card">
+      <div class="card-title">GitHubアカウント</div>
+      <div style="display:flex;align-items:center;gap:16px;padding:8px 0 16px">
+        ${avatarHtml}
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:1.1rem">${escHtml(user?.name || user?.login || '不明')}</div>
+          <div style="font-size:.82rem;color:var(--muted)">@${escHtml(user?.login || '')} · 学習済み ${studied}問 ／ 定着 ${mastered}問</div>
+        </div>
+      </div>
+      <button onclick="logout()"
+        style="width:100%;padding:13px;background:var(--red-l);color:var(--red);border:none;
+               border-radius:10px;font-weight:700;font-size:.95rem;cursor:pointer">
+        ログアウト
+      </button>
+    </div>
+    <div class="card">
+      <div class="card-title">データ管理</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-outline" onclick="ghSaveNow()">☁️ 今すぐ同期</button>
+        <button class="btn btn-outline" onclick="refreshQuestions()">🔄 問題データを再取得</button>
+        <button class="btn btn-outline" onclick="openImport()">📋 JSONを直接貼り付け</button>
+        <button class="btn btn-outline" style="color:var(--red);border-color:var(--red)"
+          onclick="if(confirm('学習進捗・履歴をすべてリセットしますか？'))resetAll()">🗑️ 進捗をリセット</button>
+      </div>
+    </div>`;
 }
 
 function updateBadge() {
-  const s   = calcStats();
-  const b   = document.getElementById('review-badge');
+  const s = calcStats();
+  const b = document.getElementById('review-badge');
   if (!b) return;
-  if (s.dueToday > 0) {
-    b.style.display = '';
-    b.textContent   = s.dueToday;
-  } else {
-    b.style.display = 'none';
-  }
+  if (s.dueToday > 0) { b.style.display=''; b.textContent=s.dueToday; }
+  else { b.style.display='none'; }
 }
 
 function resetAll() {
-  localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem(HISTORY_KEY);
-  progress = {};
+  progress = {}; history = [];
+  scheduleSave();
   showView('dashboard');
 }
 
 async function refreshQuestions() {
-  localStorage.removeItem(Q_DATA_KEY);
   const ok = await loadQuestions();
-  if (ok) {
-    alert(`✅ ${questions.length}問を再取得しました`);
-    showView('stats');
-  } else {
-    alert('questions.json が見つかりません。GitHubにコミットされているか確認してください。');
-  }
+  alert(ok ? `✅ ${questions.length}問を再取得しました` : 'questions.json が見つかりません。');
+  if (ok) showView('stats');
 }
 
 function escHtml(s) {
-  return String(s)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  初期化
 // ═══════════════════════════════════════════════════════════════
+window.addEventListener('beforeunload', () => { ghSaveNow(); });
+
 (async () => {
   document.getElementById('view').innerHTML = `
-    <div class="center-box">
-      <div class="spinner"></div>
-      <div style="color:var(--muted)">問題データを読み込み中...</div>
-    </div>`;
-
-  const ok = await loadQuestions();
-
-  if (!ok) {
-    console.warn('questions.json が見つかりません。デモモードで起動します。');
-  }
-
-  progress = loadProgress();
-  showView('dashboard');
-  updateBadge();
+    <div class="center-box"><div class="spinner"></div><div style="color:var(--muted)">読み込み中...</div></div>`;
+  await loadQuestions();
+  showAuthScreen();
 })();
 </script>
 </body>
