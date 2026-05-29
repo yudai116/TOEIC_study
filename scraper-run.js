@@ -114,7 +114,14 @@
   questions.sort((a, b) => a.id - b.id);
   const json = JSON.stringify(questions);
 
-  // ── 結果表示 ────────────────────────────────────────────────────
+  // ── iOS Shortcuts 環境では completion() で結果を返す ────────────────
+  if (typeof completion !== 'undefined') {
+    overlay.remove();
+    completion(json);
+    return;
+  }
+
+  // ── ブラウザ環境では画面にコピーUIを表示 ──────────────────────────
   box.innerHTML = `
     <div style="font-size:1.3rem;font-weight:800;margin-bottom:8px">✅ 完了！${questions.length}問取得</div>
     <p style="font-size:.85rem;color:#555;margin-bottom:12px;line-height:1.6">
