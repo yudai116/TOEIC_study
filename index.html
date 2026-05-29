@@ -789,7 +789,7 @@ function shuffle(arr) {
 
 function getTodayAnsweredIds() {
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-  return new Set(history.filter(x => x.ts >= todayStart.getTime()).map(x => x.qid));
+  return new Set(history.filter(x => x.ts >= todayStart.getTime()).map(x => Number(x.qid)));
 }
 
 function buildQueue(mode, genreId) {
