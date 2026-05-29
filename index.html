@@ -432,19 +432,23 @@
 <div id="auth-screen" style="display:none">
   <div class="auth-card">
     <div class="auth-logo">📚 TOEIC Grammar</div>
-    <div class="auth-tagline">毎日100問で文法力を定着させよう</div>
-    <div id="auth-exist-sec" style="display:none">
-      <div class="auth-sec-title">ユーザーを選択</div>
-      <div id="auth-ulist" class="auth-ulist"></div>
-      <div class="auth-or">または</div>
+    <div class="auth-tagline">GitHubアカウントでログイン</div>
+    <div class="auth-sec-title">Personal Access Token</div>
+    <input type="password" id="auth-token-input" class="auth-input"
+      placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+      onkeydown="if(event.key==='Enter')authWithGitHub()">
+    <div id="auth-err" style="color:#dc2626;font-size:.82rem;margin-bottom:8px;display:none"></div>
+    <button class="auth-btn" id="auth-submit-btn" onclick="authWithGitHub()">ログイン</button>
+    <div style="margin-top:18px;background:#f8fafc;border-radius:10px;padding:14px;font-size:.76rem;color:#475569;line-height:1.8;text-align:left">
+      <div style="font-weight:700;color:#334155;margin-bottom:6px">トークンの作成方法</div>
+      GitHub → Settings → Developer settings<br>
+      → Personal access tokens → Tokens (classic)<br>
+      → Generate new token → <strong style="color:#2563eb">gist</strong> スコープにチェック<br>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;color:#64748b">
+        📱 別の端末からも同じトークンでログインすれば<br>
+        　  学習データは自動的に同期されます
+      </div>
     </div>
-    <div class="auth-sec-title">新しいユーザーを作成</div>
-    <input type="text" id="auth-name-input" class="auth-input"
-      placeholder="ユーザー名を入力（例：山田太郎）" maxlength="20">
-    <input type="password" id="auth-pw-new" class="auth-input"
-      placeholder="パスワード" maxlength="30"
-      onkeydown="if(event.key==='Enter')authCreate()">
-    <button class="auth-btn" onclick="authCreate()">作成してスタート →</button>
   </div>
 </div>
 
@@ -458,7 +462,8 @@
       統計 <span class="badge" id="review-badge" style="display:none">0</span>
     </button>
     <button class="nav-btn" id="nav-settings" onclick="showView('settings')">⚙️設定</button>
-    <div class="user-chip" onclick="showView('settings')" id="user-chip">👤</div>
+    <div id="sync-badge" style="font-size:.75rem;color:var(--muted);padding:0 6px;white-space:nowrap;cursor:pointer"
+      onclick="showView('settings')" title="同期状態"></div>
   </div>
 </nav>
 
@@ -478,44 +483,6 @@
   </div>
 </div>
 
-<!-- プロフィール編集モーダル -->
-<div class="modal-overlay" id="profile-modal" style="display:none" onclick="if(event.target===this)closeProfileEdit()">
-  <div class="modal">
-    <h2>✏️ プロフィール編集</h2>
-    <p>名前とパスワードを変更できます。</p>
-    <div style="font-size:.82rem;font-weight:700;margin-bottom:4px">ユーザー名</div>
-    <input type="text" id="profile-name" maxlength="20" placeholder="ユーザー名"
-      style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:8px;font-size:.95rem;margin-bottom:12px">
-    <div style="font-size:.82rem;font-weight:700;margin-bottom:4px">新しいパスワード<span style="font-weight:400;color:var(--muted)">（変更しない場合は空のまま）</span></div>
-    <input type="password" id="profile-pw" maxlength="30" placeholder="新しいパスワード"
-      style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:8px;font-size:.95rem;margin-bottom:6px">
-    <input type="password" id="profile-pw2" maxlength="30" placeholder="パスワード確認"
-      style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:8px;font-size:.95rem;margin-bottom:12px"
-      onkeydown="if(event.key==='Enter')saveProfile()">
-    <div id="profile-err" style="color:var(--red);font-size:.82rem;margin-bottom:8px;display:none"></div>
-    <div class="modal-btns">
-      <button class="btn btn-outline" onclick="closeProfileEdit()">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveProfile()">保存</button>
-    </div>
-  </div>
-</div>
-
-<!-- ユーザーモーダル -->
-<div class="modal-overlay" id="user-modal" style="display:none" onclick="if(event.target===this)closeUserModal()">
-  <div class="modal">
-    <h2>👤 ユーザー管理</h2>
-    <p style="margin-bottom:12px">端末内で複数人の進捗を管理できます。</p>
-    <div id="user-list-container"></div>
-    <hr class="divider">
-    <div style="font-size:.9rem;font-weight:700;margin-bottom:8px">新しいユーザーを追加</div>
-    <input type="text" id="new-user-name" placeholder="ユーザー名を入力" maxlength="20"
-      onkeydown="if(event.key==='Enter')createUser()">
-    <div class="modal-btns">
-      <button class="btn btn-outline" onclick="closeUserModal()">閉じる</button>
-      <button class="btn btn-primary" onclick="createUser()">追加</button>
-    </div>
-  </div>
-</div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════
@@ -548,212 +515,159 @@ function classifyQuestion(q) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  ユーザー管理
+//  GitHub API
 // ═══════════════════════════════════════════════════════════════
-const USERS_KEY        = 'toeic_users';
-const CUR_USER_KEY     = 'toeic_current_user';
-const Q_DATA_KEY       = 'toeic_questions_data';
+const GH_API    = 'https://api.github.com';
+const GIST_DESC = 'TOEIC Grammar Trainer Progress';
+const GIST_FILE = 'progress.json';
+let _saveTimer  = null;
 
-function loadUsers() {
-  try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); }
-  catch { return []; }
+function getGhToken()    { return sessionStorage.getItem('gh_token'); }
+function setGhToken(t)   { sessionStorage.setItem('gh_token', t); }
+function getGhUser()     { try { return JSON.parse(sessionStorage.getItem('gh_user') || 'null'); } catch { return null; } }
+function setGhUser(u)    { sessionStorage.setItem('gh_user', JSON.stringify(u)); }
+function getGhGistId()   { return sessionStorage.getItem('gh_gist_id') || ''; }
+function setGhGistId(id) { id ? sessionStorage.setItem('gh_gist_id', id) : sessionStorage.removeItem('gh_gist_id'); }
+function clearSession()  { sessionStorage.clear(); }
+
+async function ghFetch(path, opts = {}) {
+  const token = getGhToken();
+  const res = await fetch(GH_API + path, {
+    ...opts,
+    headers: {
+      'Authorization': 'token ' + token,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+      ...(opts.headers || {})
+    },
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (!res.ok) throw new Error('GitHub API error ' + res.status);
+  return res;
 }
-function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
 
-function getCurrentUserId() { return localStorage.getItem(CUR_USER_KEY) || 'default'; }
-function setCurrentUserId(id) { localStorage.setItem(CUR_USER_KEY, id); }
-
-function userStorageKey(uid)  { return uid === 'default' ? 'toeic_v2'          : `toeic_v2_${uid}`; }
-function userHistoryKey(uid)  { return uid === 'default' ? 'toeic_history_v2'  : `toeic_hist_${uid}`; }
-
-function ensureDefaultUser() {
-  const users = loadUsers();
-  if (!users.find(u => u.id === 'default')) {
-    users.unshift({ id: 'default', name: 'ユーザー1', createdAt: Date.now() });
-    saveUsers(users);
+async function ghFindOrCreateGist() {
+  let page = 1;
+  while (true) {
+    const r = await ghFetch(`/gists?per_page=100&page=${page}`);
+    const gists = await r.json();
+    const found = gists.find(g => g.description === GIST_DESC && g.files[GIST_FILE]);
+    if (found) { setGhGistId(found.id); return found.id; }
+    if (gists.length < 100) break;
+    page++;
   }
+  const cr = await ghFetch('/gists', {
+    method: 'POST',
+    body: { description: GIST_DESC, public: false, files: { [GIST_FILE]: { content: '{"progress":{},"history":[]}' } } }
+  });
+  const g = await cr.json();
+  setGhGistId(g.id);
+  return g.id;
 }
 
-function updateNavUser() {
-  const uid   = getCurrentUserId();
-  const users = loadUsers();
-  const user  = users.find(u => u.id === uid);
-  const name  = user ? user.name : 'ゲスト';
-  document.getElementById('user-chip').textContent = '👤 ' + name;
+async function ghLoadData() {
+  try {
+    const gistId = await ghFindOrCreateGist();
+    const r = await ghFetch('/gists/' + gistId);
+    const g = await r.json();
+    const content = g.files[GIST_FILE]?.content || '{}';
+    return JSON.parse(content);
+  } catch { return {}; }
 }
 
-function openUserModal() {
-  renderUserList();
-  document.getElementById('user-modal').style.display = 'flex';
-}
-function closeUserModal() { document.getElementById('user-modal').style.display = 'none'; }
-
-function renderUserList() {
-  const users = loadUsers();
-  const curUid = getCurrentUserId();
-  const container = document.getElementById('user-list-container');
-  if (!users.length) { container.innerHTML = '<div style="color:var(--muted);font-size:.9rem;margin-bottom:12px">ユーザーがいません</div>'; return; }
-
-  container.innerHTML = '<div class="user-list">' + users.map(u => {
-    const prog = (() => { try { return JSON.parse(localStorage.getItem(userStorageKey(u.id)) || '{}'); } catch { return {}; } })();
-    const studied  = Object.keys(prog).length;
-    const mastered = Object.values(prog).filter(p => p.level >= REVIEW_INTERVALS.length).length;
-    const isCur    = u.id === curUid;
-    return `<div class="user-row${isCur?' current':''}" onclick="switchUser('${u.id}')">
-      <div class="user-avatar">${u.name.charAt(0).toUpperCase()}</div>
-      <div>
-        <div class="user-row-name">${escHtml(u.name)}${isCur?' <span style="font-size:.75rem;color:var(--blue)">(現在)</span>':''}</div>
-        <div class="user-row-stats">学習済み ${studied}問 ／ 定着 ${mastered}問</div>
-      </div>
-      ${!isCur ? `<button class="btn btn-outline" style="padding:6px 12px;font-size:.78rem" onclick="event.stopPropagation();deleteUser('${u.id}')">削除</button>` : ''}
-    </div>`;
-  }).join('') + '</div>';
+async function ghSaveNow() {
+  const gistId = getGhGistId();
+  if (!gistId || !getGhToken()) return;
+  setSyncBadge('saving');
+  try {
+    await ghFetch('/gists/' + gistId, {
+      method: 'PATCH',
+      body: { files: { [GIST_FILE]: { content: JSON.stringify({ progress, history }) } } }
+    });
+    setSyncBadge('synced');
+  } catch(e) { console.error('Gist save failed:', e); setSyncBadge('error'); }
 }
 
-function createUser() {
-  const input = document.getElementById('new-user-name');
-  const name  = input.value.trim();
-  if (!name) { alert('名前を入力してください'); return; }
-  const users = loadUsers();
-  const id    = 'u_' + Date.now();
-  users.push({ id, name, createdAt: Date.now() });
-  saveUsers(users);
-  switchUser(id);
-  input.value = '';
-  renderUserList();
+function scheduleSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(ghSaveNow, 2000);
 }
 
-function switchUser(uid) {
-  setCurrentUserId(uid);
-  progress = loadProgress();
-  closeUserModal();
-  updateNavUser();
-  showView('dashboard');
-}
-
-function deleteUser(uid) {
-  if (!confirm('このユーザーの進捗データをすべて削除しますか？')) return;
-  const users = loadUsers().filter(u => u.id !== uid);
-  saveUsers(users);
-  localStorage.removeItem(userStorageKey(uid));
-  localStorage.removeItem(userHistoryKey(uid));
-  renderUserList();
+function setSyncBadge(state) {
+  const el = document.getElementById('sync-badge');
+  if (!el) return;
+  if (state === 'saving') { el.textContent = '⏳ 同期中'; el.style.color = 'var(--amber)'; }
+  else if (state === 'synced') { el.textContent = '☁️ 同期済'; el.style.color = 'var(--green)'; }
+  else if (state === 'error')  { el.textContent = '⚠️ 同期失敗'; el.style.color = 'var(--red)'; }
+  else { el.textContent = ''; }
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  認証
 // ═══════════════════════════════════════════════════════════════
-function isAuthenticated() {
-  const uid   = getCurrentUserId();
-  const users = loadUsers();
-  return !!users.find(u => u.id === uid);
-}
-
-function hashPw(pw) {
-  try { return btoa(unescape(encodeURIComponent(pw))); } catch { return btoa(pw); }
-}
+function isAuthenticated() { return !!getGhToken(); }
 
 function showAuthScreen() {
-  const users  = loadUsers();
   document.getElementById('auth-screen').style.display = 'flex';
-  const existSec  = document.getElementById('auth-exist-sec');
-  const authUlist = document.getElementById('auth-ulist');
-  if (users.length) {
-    existSec.style.display = 'block';
-    authUlist.innerHTML = users.map(u => {
-      const prog     = (() => { try { return JSON.parse(localStorage.getItem(userStorageKey(u.id))||'{}'); } catch { return {}; } })();
-      const studied  = Object.keys(prog).length;
-      const mastered = Object.values(prog).filter(p => p.level >= REVIEW_INTERVALS.length).length;
-      return `<div id="auth-row-${u.id}">
-        <button class="auth-ubtn" onclick="expandAuthUser('${u.id}')">
-          <div class="auth-uavatar">${u.name.charAt(0).toUpperCase()}</div>
-          <div style="flex:1">
-            <div class="auth-uname">${escHtml(u.name)}</div>
-            <div class="auth-ustats">学習済み ${studied}問 ／ 定着 ${mastered}問</div>
-          </div>
-          <span style="color:var(--muted);font-size:1.1rem">›</span>
-        </button>
-        <div id="auth-pw-${u.id}" style="display:none;padding:10px 0 4px">
-          <input type="password" id="auth-pw-inp-${u.id}" class="auth-input"
-            placeholder="パスワード" style="margin-bottom:6px"
-            onkeydown="if(event.key==='Enter')authLogin('${u.id}')">
-          <div id="auth-pw-err-${u.id}" style="color:var(--red);font-size:.82rem;margin-bottom:6px;display:none">
-            パスワードが違います
-          </div>
-          <button class="auth-btn" onclick="authLogin('${u.id}')">ログイン</button>
-        </div>
-      </div>`;
-    }).join('');
-  } else {
-    existSec.style.display = 'none';
-  }
-  const nameInp = document.getElementById('auth-name-input');
-  if (nameInp) { nameInp.value = ''; }
-  const pwInp = document.getElementById('auth-pw-new');
-  if (pwInp) pwInp.value = '';
-  setTimeout(() => nameInp?.focus(), 120);
-}
-
-function expandAuthUser(uid) {
-  const users = loadUsers();
-  users.forEach(u => {
-    const el = document.getElementById('auth-pw-'+u.id);
-    if (el) el.style.display = 'none';
-  });
-  const pwEl = document.getElementById('auth-pw-'+uid);
-  if (pwEl) {
-    pwEl.style.display = 'block';
-    setTimeout(() => document.getElementById('auth-pw-inp-'+uid)?.focus(), 50);
-  }
-}
-
-function authLogin(uid) {
-  const users = loadUsers();
-  const user  = users.find(u => u.id === uid);
-  if (!user) return;
-  const inp    = document.getElementById('auth-pw-inp-'+uid);
-  const errEl  = document.getElementById('auth-pw-err-'+uid);
-  const entered = inp ? inp.value : '';
-  if (user.pw && hashPw(entered) !== user.pw) {
-    errEl.style.display = 'block';
-    if (inp) { inp.value = ''; inp.focus(); }
-    return;
-  }
-  if (errEl) errEl.style.display = 'none';
-  authSelect(uid);
+  const inp = document.getElementById('auth-token-input');
+  if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 120); }
+  const err = document.getElementById('auth-err');
+  if (err) err.style.display = 'none';
 }
 
 function hideAuthScreen() {
   document.getElementById('auth-screen').style.display = 'none';
 }
 
-function authSelect(uid) {
-  setCurrentUserId(uid);
-  progress = loadProgress();
-  hideAuthScreen();
-  updateNavUser();
-  showView('dashboard');
-  updateBadge();
+async function authWithGitHub() {
+  const inp   = document.getElementById('auth-token-input');
+  const errEl = document.getElementById('auth-err');
+  const btn   = document.getElementById('auth-submit-btn');
+  const token = inp ? inp.value.trim() : '';
+  if (!token) {
+    errEl.textContent = 'トークンを入力してください'; errEl.style.display = 'block'; return;
+  }
+  errEl.style.display = 'none';
+  btn.textContent = 'GitHubに接続中...'; btn.disabled = true;
+  try {
+    const userRes = await fetch(GH_API + '/user', {
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (userRes.status === 401) throw new Error('トークンが無効です。正しいPATを入力してください。');
+    if (!userRes.ok) throw new Error('GitHub接続失敗 (HTTP ' + userRes.status + ')');
+    const user = await userRes.json();
+    setGhToken(token);
+    setGhUser(user);
+    btn.textContent = 'データを読み込み中...';
+    setSyncBadge('saving');
+    let data;
+    try {
+      data = await ghLoadData();
+    } catch(e) {
+      if (String(e.message).includes('403')) {
+        throw new Error('トークンに gist スコープがありません。トークン作成時に「gist」にチェックを入れてください。');
+      }
+      throw e;
+    }
+    progress = data.progress || {};
+    history  = (data.history || []).filter(h => h.ts > Date.now() - 90 * DAY_MS);
+    setSyncBadge('synced');
+    hideAuthScreen();
+    showView('dashboard');
+    updateBadge();
+  } catch(e) {
+    setGhToken(''); setGhUser(null); setGhGistId('');
+    errEl.textContent = e.message || 'ログインに失敗しました'; errEl.style.display = 'block';
+  } finally {
+    btn.textContent = 'ログイン'; btn.disabled = false;
+  }
 }
 
-function authCreate() {
-  const inp   = document.getElementById('auth-name-input');
-  const pwInp = document.getElementById('auth-pw-new');
-  const name  = inp.value.trim();
-  const pw    = pwInp ? pwInp.value : '';
-  if (!name) {
-    inp.style.borderColor = 'var(--red)';
-    inp.focus();
-    setTimeout(() => inp.style.borderColor = '', 1200);
-    return;
-  }
-  const users  = loadUsers();
-  const id     = 'u_' + Date.now();
-  const newUser = { id, name, createdAt: Date.now() };
-  if (pw) newUser.pw = hashPw(pw);
-  users.push(newUser);
-  saveUsers(users);
-  authSelect(id);
+function logout() {
+  clearTimeout(_saveTimer);
+  clearSession();
+  progress = {}; history = [];
+  showAuthScreen();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -780,27 +694,19 @@ function formatNextReview(p) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  ストレージ（ユーザー別）
+//  ストレージ（インメモリ + Gist）
 // ═══════════════════════════════════════════════════════════════
-function loadProgress() {
-  try { return JSON.parse(localStorage.getItem(userStorageKey(getCurrentUserId())) || '{}'); }
-  catch { return {}; }
-}
-function saveProgress(p) {
-  localStorage.setItem(userStorageKey(getCurrentUserId()), JSON.stringify(p));
-}
-function loadHistory() {
-  try { return JSON.parse(localStorage.getItem(userHistoryKey(getCurrentUserId())) || '[]'); }
-  catch { return []; }
-}
-function saveHistory(h) {
+function loadProgress()  { return progress; }
+function saveProgress(p) { progress = p; scheduleSave(); }
+function loadHistory()   { return history; }
+function saveHistory(h)  {
   const cutoff = Date.now() - 90 * DAY_MS;
-  localStorage.setItem(userHistoryKey(getCurrentUserId()), JSON.stringify(h.filter(x => x.ts > cutoff)));
+  history = h.filter(x => x.ts > cutoff);
+  scheduleSave();
 }
 function recordStudy(qid, correct) {
-  const h = loadHistory();
-  h.push({ ts: Date.now(), qid, correct });
-  saveHistory(h);
+  history.push({ ts: Date.now(), qid, correct });
+  scheduleSave();
 }
 function updateQProgress(progress, qid, correct) {
   const p = progress[qid] || { level:0, correctCount:0, wrongCount:0, nextReview:null, firstStudied:Date.now() };
@@ -822,6 +728,7 @@ function updateQProgress(progress, qid, correct) {
 // ═══════════════════════════════════════════════════════════════
 let questions = [];
 let progress  = {};
+let history   = [];
 let session   = null;
 let usingDemo = false;
 
@@ -850,17 +757,9 @@ async function loadQuestions() {
     const data = await r.json();
     if (Array.isArray(data) && data.length > 0) {
       questions = data; usingDemo = false;
-      try { localStorage.setItem(Q_DATA_KEY, JSON.stringify(data)); } catch {}
       return true;
     }
   } catch {}
-  const cached = localStorage.getItem(Q_DATA_KEY);
-  if (cached) {
-    try {
-      const data = JSON.parse(cached);
-      if (Array.isArray(data) && data.length > 0) { questions = data; usingDemo = false; return true; }
-    } catch {}
-  }
   questions = DEMO_QUESTIONS; usingDemo = true;
   return false;
 }
@@ -873,7 +772,6 @@ function doImport() {
   try {
     const data = JSON.parse(text);
     if (!Array.isArray(data) || data.length === 0) throw new Error();
-    localStorage.setItem(Q_DATA_KEY, text);
     questions = data; usingDemo = false;
     closeImport(); showView('dashboard');
     alert(`✅ ${data.length}問を読み込みました！`);
@@ -913,10 +811,11 @@ function buildQueue(mode, genreId) {
 }
 
 function buildDailyQueue(genreId) {
-  const today   = new Date(); today.setHours(0,0,0,0);
-  const uid     = getCurrentUserId();
-  const dayKey  = `toeic_daily_${uid}_${today.toISOString().slice(0,10)}${genreId?'_'+genreId:''}`;
-  const saved   = localStorage.getItem(dayKey);
+  const today  = new Date(); today.setHours(0,0,0,0);
+  const user   = getGhUser();
+  const uid    = user ? user.login : 'guest';
+  const dayKey = `toeic_daily_${uid}_${today.toISOString().slice(0,10)}${genreId?'_'+genreId:''}`;
+  const saved  = sessionStorage.getItem(dayKey);
   if (saved) {
     try { const q = JSON.parse(saved); if (Array.isArray(q) && q.length) return q; } catch {}
   }
@@ -925,7 +824,7 @@ function buildDailyQueue(genreId) {
   const newQ = shuffle(qs.filter(q => !progress[q.id] || progress[q.id].level===0).map(q=>q.id));
   const combined = [...due, ...newQ].slice(0, DAILY_TARGET);
   if (!combined.length) return shuffle(qs.map(q=>q.id).slice(0, DAILY_TARGET));
-  localStorage.setItem(dayKey, JSON.stringify(combined));
+  sessionStorage.setItem(dayKey, JSON.stringify(combined));
   return combined;
 }
 
@@ -1331,7 +1230,6 @@ function showView(name) {
   } else if (name === 'settings') {
     document.getElementById('nav-settings').classList.add('active');
     view.innerHTML = renderSettings();
-    renderSettingsUserList();
   }
   updateBadge();
 }
@@ -1340,142 +1238,62 @@ function showView(name) {
 //  ビュー：設定
 // ═══════════════════════════════════════════════════════════════
 function renderSettings() {
-  const uid     = getCurrentUserId();
-  const users   = loadUsers();
-  const user    = users.find(u => u.id === uid);
+  const user    = getGhUser();
+  const gistId  = getGhGistId();
   const studied = Object.keys(progress).length;
   const mastered= Object.values(progress).filter(p => p.level >= REVIEW_INTERVALS.length).length;
+  const avatarUrl = user?.avatar_url;
+  const avatarHtml = avatarUrl
+    ? `<img src="${avatarUrl}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+    : `<div style="width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;flex-shrink:0">${user ? user.login.charAt(0).toUpperCase() : '?'}</div>`;
+  const gistLink = gistId && user
+    ? `<a href="https://gist.github.com/${escHtml(user.login)}/${escHtml(gistId)}" target="_blank" rel="noopener"
+         style="font-size:.78rem;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+         📄 GitHubでデータを確認
+       </a>`
+    : '';
   return `
     <div class="card">
-      <div class="card-title">アカウント</div>
+      <div class="card-title">GitHubアカウント</div>
       <div style="display:flex;align-items:center;gap:16px;padding:8px 0 16px">
-        <div class="user-avatar" style="width:52px;height:52px;font-size:1.3rem;flex-shrink:0">
-          ${user ? user.name.charAt(0).toUpperCase() : '?'}
-        </div>
+        ${avatarHtml}
         <div style="flex:1">
-          <div style="font-weight:800;font-size:1.1rem">${escHtml(user?.name || '不明')}</div>
-          <div style="font-size:.82rem;color:var(--muted)">学習済み ${studied}問 ／ 定着 ${mastered}問</div>
+          <div style="font-weight:800;font-size:1.1rem">${escHtml(user?.name || user?.login || '不明')}</div>
+          <div style="font-size:.82rem;color:var(--muted)">@${escHtml(user?.login || '')} · 学習済み ${studied}問 ／ 定着 ${mastered}問</div>
         </div>
-        <button onclick="openProfileEdit()"
-          style="padding:8px 14px;background:var(--blue-l);color:var(--blue);border:none;
-                 border-radius:8px;font-weight:700;font-size:.82rem;cursor:pointer;flex-shrink:0">
-          ✏️ 編集
-        </button>
       </div>
       <button onclick="logout()"
         style="width:100%;padding:13px;background:var(--red-l);color:var(--red);border:none;
                border-radius:10px;font-weight:700;font-size:.95rem;cursor:pointer">
-        ログアウト（ユーザー切替）
+        ログアウト
       </button>
     </div>
     <div class="card">
-      <div class="card-title">ユーザー管理</div>
-      <div id="settings-user-list"></div>
-      <hr class="divider">
-      <div style="font-size:.88rem;font-weight:700;margin-bottom:8px">新しいユーザーを追加</div>
-      <div style="display:flex;gap:8px">
-        <input type="text" id="settings-new-name" placeholder="ユーザー名" maxlength="20"
-          style="flex:1;padding:10px 14px;border:2px solid var(--border);border-radius:8px;font-size:.9rem"
-          onkeydown="if(event.key==='Enter')settingsCreateUser()">
-        <button class="btn btn-primary" onclick="settingsCreateUser()">追加</button>
+      <div class="card-title">データ保存場所</div>
+      <div style="background:var(--bg);border-radius:10px;padding:14px;font-size:.85rem;line-height:1.7">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:1.2rem">☁️</span>
+          <div>
+            <div style="font-weight:700">GitHub Gist（プライベート）</div>
+            <div style="font-size:.76rem;color:var(--muted)">進捗データはあなたのGitHubアカウントの<br>プライベートGistに保存されます</div>
+          </div>
+        </div>
+        <div style="font-size:.76rem;color:var(--muted);padding-top:8px;border-top:1px solid var(--border)">
+          📱 別端末からも同じPATでログインすれば自動的に同期
+        </div>
+        ${gistId ? `<div style="margin-top:8px">${gistLink}</div>` : ''}
       </div>
     </div>
     <div class="card">
       <div class="card-title">データ管理</div>
       <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-outline" onclick="ghSaveNow()">☁️ 今すぐ同期</button>
         <button class="btn btn-outline" onclick="refreshQuestions()">🔄 問題データを再取得</button>
         <button class="btn btn-outline" onclick="openImport()">📋 JSONを直接貼り付け</button>
         <button class="btn btn-outline" style="color:var(--red);border-color:var(--red)"
           onclick="if(confirm('学習進捗・履歴をすべてリセットしますか？'))resetAll()">🗑️ 進捗をリセット</button>
       </div>
     </div>`;
-}
-
-function renderSettingsUserList() {
-  const users  = loadUsers();
-  const curUid = getCurrentUserId();
-  const el     = document.getElementById('settings-user-list');
-  if (!el) return;
-  if (!users.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:.9rem;margin-bottom:12px">ユーザーがいません</div>';
-    return;
-  }
-  el.innerHTML = '<div class="user-list">' + users.map(u => {
-    const prog    = (() => { try { return JSON.parse(localStorage.getItem(userStorageKey(u.id))||'{}'); } catch { return {}; } })();
-    const studied = Object.keys(prog).length;
-    const mastered= Object.values(prog).filter(p => p.level >= REVIEW_INTERVALS.length).length;
-    const isCur   = u.id === curUid;
-    return `<div class="user-row${isCur?' current':''}">
-      <div class="user-avatar">${u.name.charAt(0).toUpperCase()}</div>
-      <div style="flex:1">
-        <div class="user-row-name">${escHtml(u.name)}${isCur?' <span style="font-size:.75rem;color:var(--blue)">(現在)</span>':''}</div>
-        <div class="user-row-stats">学習済み ${studied}問 ／ 定着 ${mastered}問</div>
-      </div>
-      ${!isCur ? `<button class="btn btn-outline" style="padding:6px 12px;font-size:.78rem" onclick="settingsDeleteUser('${u.id}')">削除</button>` : ''}
-    </div>`;
-  }).join('') + '</div>';
-}
-
-function settingsCreateUser() {
-  const inp  = document.getElementById('settings-new-name');
-  const name = inp.value.trim();
-  if (!name) { alert('名前を入力してください'); return; }
-  const users = loadUsers();
-  const id    = 'u_' + Date.now();
-  users.push({ id, name, createdAt: Date.now() });
-  saveUsers(users);
-  authSelect(id);
-}
-
-function openProfileEdit() {
-  const uid   = getCurrentUserId();
-  const users = loadUsers();
-  const user  = users.find(u => u.id === uid);
-  if (!user) return;
-  document.getElementById('profile-name').value = user.name;
-  document.getElementById('profile-pw').value   = '';
-  document.getElementById('profile-pw2').value  = '';
-  document.getElementById('profile-err').style.display = 'none';
-  document.getElementById('profile-modal').style.display = 'flex';
-  setTimeout(() => document.getElementById('profile-name').focus(), 100);
-}
-
-function closeProfileEdit() {
-  document.getElementById('profile-modal').style.display = 'none';
-}
-
-function saveProfile() {
-  const name = document.getElementById('profile-name').value.trim();
-  const pw   = document.getElementById('profile-pw').value;
-  const pw2  = document.getElementById('profile-pw2').value;
-  const errEl = document.getElementById('profile-err');
-  if (!name) { errEl.textContent='名前を入力してください'; errEl.style.display='block'; return; }
-  if (pw && pw !== pw2) { errEl.textContent='パスワードが一致しません'; errEl.style.display='block'; return; }
-  errEl.style.display = 'none';
-  const uid   = getCurrentUserId();
-  const users = loadUsers();
-  const idx   = users.findIndex(u => u.id === uid);
-  if (idx < 0) return;
-  users[idx].name = name;
-  if (pw) users[idx].pw = hashPw(pw);
-  saveUsers(users);
-  closeProfileEdit();
-  updateNavUser();
-  showView('settings');
-}
-
-function settingsDeleteUser(uid) {
-  if (!confirm('このユーザーの進捗データをすべて削除しますか？')) return;
-  const users = loadUsers().filter(u => u.id !== uid);
-  saveUsers(users);
-  localStorage.removeItem(userStorageKey(uid));
-  localStorage.removeItem(userHistoryKey(uid));
-  renderSettingsUserList();
-}
-
-function logout() {
-  localStorage.removeItem(CUR_USER_KEY);
-  showAuthScreen();
 }
 
 function updateBadge() {
@@ -1487,15 +1305,12 @@ function updateBadge() {
 }
 
 function resetAll() {
-  const uid = getCurrentUserId();
-  localStorage.removeItem(userStorageKey(uid));
-  localStorage.removeItem(userHistoryKey(uid));
-  progress = {};
+  progress = {}; history = [];
+  scheduleSave();
   showView('dashboard');
 }
 
 async function refreshQuestions() {
-  localStorage.removeItem(Q_DATA_KEY);
   const ok = await loadQuestions();
   alert(ok ? `✅ ${questions.length}問を再取得しました` : 'questions.json が見つかりません。');
   if (ok) showView('stats');
@@ -1508,6 +1323,8 @@ function escHtml(s) {
 // ═══════════════════════════════════════════════════════════════
 //  初期化
 // ═══════════════════════════════════════════════════════════════
+window.addEventListener('beforeunload', () => { ghSaveNow(); });
+
 (async () => {
   document.getElementById('view').innerHTML = `
     <div class="center-box"><div class="spinner"></div><div style="color:var(--muted)">読み込み中...</div></div>`;
