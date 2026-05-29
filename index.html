@@ -693,9 +693,21 @@ function saveHistory(h) {
   history = h.filter(x => x.ts > cutoff);
   localStorage.setItem(histKey(getCurUid()), JSON.stringify(history));
 }
+function todayDoneKey() {
+  const uid   = getCurUid() || 'guest';
+  const today = new Date().toISOString().slice(0, 10);
+  return `toeic_done_${uid}_${today}`;
+}
+function markDoneToday(qid) {
+  const key  = todayDoneKey();
+  const done = JSON.parse(localStorage.getItem(key) || '[]');
+  const n    = Number(qid);
+  if (!done.includes(n)) { done.push(n); localStorage.setItem(key, JSON.stringify(done)); }
+}
 function recordStudy(qid, correct) {
   history.push({ ts: Date.now(), qid, correct });
   localStorage.setItem(histKey(getCurUid()), JSON.stringify(history));
+  markDoneToday(qid);
 }
 function updateQProgress(progress, qid, correct) {
   const p = progress[qid] || { level:0, correctCount:0, wrongCount:0, nextReview:null, firstStudied:Date.now() };
@@ -788,8 +800,7 @@ function shuffle(arr) {
 }
 
 function getTodayAnsweredIds() {
-  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-  return new Set(history.filter(x => x.ts >= todayStart.getTime()).map(x => Number(x.qid)));
+  return new Set(JSON.parse(localStorage.getItem(todayDoneKey()) || '[]'));
 }
 
 function buildQueue(mode, genreId) {
