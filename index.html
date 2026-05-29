@@ -432,21 +432,49 @@
 <div id="auth-screen" style="display:none">
   <div class="auth-card">
     <div class="auth-logo">📚 TOEIC Grammar</div>
-    <div class="auth-tagline">GitHubアカウントでログイン</div>
-    <div class="auth-sec-title">Personal Access Token</div>
-    <input type="password" id="auth-token-input" class="auth-input"
-      placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-      onkeydown="if(event.key==='Enter')authWithGitHub()">
-    <div id="auth-err" style="color:#dc2626;font-size:.82rem;margin-bottom:8px;display:none"></div>
-    <button class="auth-btn" id="auth-submit-btn" onclick="authWithGitHub()">ログイン</button>
-    <div style="margin-top:18px;background:#f8fafc;border-radius:10px;padding:14px;font-size:.76rem;color:#475569;line-height:1.8;text-align:left">
-      <div style="font-weight:700;color:#334155;margin-bottom:6px">トークンの作成方法</div>
-      GitHub → Settings → Developer settings<br>
-      → Personal access tokens → Tokens (classic)<br>
-      → Generate new token → <strong style="color:#2563eb">gist</strong> スコープにチェック<br>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;color:#64748b">
-        📱 別の端末からも同じトークンでログインすれば<br>
-        　  学習データは自動的に同期されます
+    <div class="auth-tagline">毎日100問で文法力を定着させよう</div>
+
+    <!-- ログインパネル (アカウント存在時) -->
+    <div id="auth-panel-login" style="display:none">
+      <div class="auth-sec-title">ユーザーを選択</div>
+      <div id="auth-ulist" class="auth-ulist"></div>
+      <div id="auth-pw-box" style="display:none;padding-top:4px">
+        <input type="password" id="auth-pw-inp" class="auth-input" placeholder="パスワード"
+          onkeydown="if(event.key==='Enter')doLogin()">
+        <div id="auth-err" style="color:#dc2626;font-size:.82rem;margin-bottom:8px;display:none"></div>
+        <button class="auth-btn" id="auth-login-btn" onclick="doLogin()">ログイン</button>
+      </div>
+      <div style="text-align:center;margin-top:16px">
+        <button onclick="showSetupPanel()"
+          style="background:none;border:none;color:var(--blue);font-size:.83rem;cursor:pointer;text-decoration:underline">
+          ＋ アカウントを追加
+        </button>
+      </div>
+    </div>
+
+    <!-- 登録パネル (初回 or アカウント追加) -->
+    <div id="auth-panel-setup" style="display:none">
+      <div class="auth-sec-title">アカウントを登録</div>
+      <input type="text" id="setup-uid" class="auth-input" placeholder="ユーザーID（例：yudai）" maxlength="20"
+        autocomplete="username">
+      <input type="password" id="setup-pw" class="auth-input" placeholder="パスワード" maxlength="30"
+        autocomplete="new-password">
+      <div class="auth-sec-title" style="margin-top:2px">GitHub Personal Access Token</div>
+      <input type="password" id="setup-pat" class="auth-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+        onkeydown="if(event.key==='Enter')doSetup()">
+      <div id="setup-err" style="color:#dc2626;font-size:.82rem;margin-bottom:8px;display:none"></div>
+      <button class="auth-btn" id="setup-btn" onclick="doSetup()">登録してスタート →</button>
+      <div id="setup-back-wrap" style="text-align:center;margin-top:12px;display:none">
+        <button onclick="showLoginPanel()"
+          style="background:none;border:none;color:var(--muted);font-size:.82rem;cursor:pointer">
+          ← 戻る
+        </button>
+      </div>
+      <div style="margin-top:14px;background:#f8fafc;border-radius:10px;padding:12px;font-size:.75rem;color:#64748b;line-height:1.7">
+        PATの作成: GitHub → Settings → Developer settings<br>
+        → Personal access tokens → Tokens (classic)<br>
+        → <strong style="color:#2563eb">gist</strong> スコープにチェックして生成<br>
+        <span style="color:#94a3b8">📱 別端末でも同じPATで登録すれば学習データを同期</span>
       </div>
     </div>
   </div>
@@ -603,64 +631,148 @@ function setSyncBadge(state) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  ローカルアカウント（PAT保存）
+// ═══════════════════════════════════════════════════════════════
+const ACCOUNTS_KEY = 'toeic_accounts';
+
+function hashPw(pw) {
+  try { return btoa(unescape(encodeURIComponent(pw + '_toeic2024'))); } catch { return btoa(pw); }
+}
+function loadAccounts() {
+  try { return JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '[]'); } catch { return []; }
+}
+function saveAccounts(a) { localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(a)); }
+
+// ═══════════════════════════════════════════════════════════════
 //  認証
 // ═══════════════════════════════════════════════════════════════
+let _authUid = null;
+
 function isAuthenticated() { return !!getGhToken(); }
 
 function showAuthScreen() {
   document.getElementById('auth-screen').style.display = 'flex';
-  const inp = document.getElementById('auth-token-input');
-  if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 120); }
-  const err = document.getElementById('auth-err');
-  if (err) err.style.display = 'none';
+  if (loadAccounts().length > 0) showLoginPanel(); else showSetupPanel();
 }
 
-function hideAuthScreen() {
-  document.getElementById('auth-screen').style.display = 'none';
+function hideAuthScreen() { document.getElementById('auth-screen').style.display = 'none'; }
+
+function showLoginPanel() {
+  document.getElementById('auth-panel-login').style.display = 'block';
+  document.getElementById('auth-panel-setup').style.display = 'none';
+  _authUid = null;
+  const accounts = loadAccounts();
+  document.getElementById('auth-ulist').innerHTML = accounts.map(a => `
+    <button class="auth-ubtn" id="auth-ubtn-${escHtml(a.uid)}" onclick="selectAuthUser('${escHtml(a.uid)}')">
+      <div class="auth-uavatar">${a.uid.charAt(0).toUpperCase()}</div>
+      <div style="flex:1;text-align:left">
+        <div class="auth-uname">${escHtml(a.uid)}</div>
+        <div class="auth-ustats">${a.ghLogin ? '@'+escHtml(a.ghLogin) : ''}</div>
+      </div>
+      <span style="color:var(--muted);font-size:1.1rem">›</span>
+    </button>
+  `).join('');
+  document.getElementById('auth-pw-box').style.display = 'none';
+  document.getElementById('auth-err').style.display = 'none';
 }
 
-async function authWithGitHub() {
-  const inp   = document.getElementById('auth-token-input');
+function showSetupPanel() {
+  document.getElementById('auth-panel-login').style.display = 'none';
+  document.getElementById('auth-panel-setup').style.display = 'block';
+  const hasAccounts = loadAccounts().length > 0;
+  document.getElementById('setup-back-wrap').style.display = hasAccounts ? 'block' : 'none';
+  document.getElementById('setup-uid').value = '';
+  document.getElementById('setup-pw').value  = '';
+  document.getElementById('setup-pat').value = '';
+  document.getElementById('setup-err').style.display = 'none';
+  setTimeout(() => document.getElementById('setup-uid').focus(), 80);
+}
+
+function selectAuthUser(uid) {
+  _authUid = uid;
+  document.querySelectorAll('.auth-ubtn').forEach(b => b.style.borderColor = '');
+  const btn = document.getElementById('auth-ubtn-' + uid);
+  if (btn) btn.style.borderColor = 'var(--blue)';
+  document.getElementById('auth-pw-box').style.display = 'block';
+  document.getElementById('auth-err').style.display = 'none';
+  document.getElementById('auth-pw-inp').value = '';
+  setTimeout(() => document.getElementById('auth-pw-inp').focus(), 50);
+}
+
+async function doLogin() {
+  const pw    = document.getElementById('auth-pw-inp').value;
   const errEl = document.getElementById('auth-err');
-  const btn   = document.getElementById('auth-submit-btn');
-  const token = inp ? inp.value.trim() : '';
-  if (!token) {
-    errEl.textContent = 'トークンを入力してください'; errEl.style.display = 'block'; return;
+  const btn   = document.getElementById('auth-login-btn');
+  if (!_authUid) return;
+  const account = loadAccounts().find(a => a.uid === _authUid);
+  if (!account) return;
+  if (account.pwHash !== hashPw(pw)) {
+    errEl.textContent = 'パスワードが違います'; errEl.style.display = 'block';
+    document.getElementById('auth-pw-inp').value = '';
+    document.getElementById('auth-pw-inp').focus();
+    return;
   }
   errEl.style.display = 'none';
-  btn.textContent = 'GitHubに接続中...'; btn.disabled = true;
-  try {
-    const userRes = await fetch(GH_API + '/user', {
-      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
-    });
-    if (userRes.status === 401) throw new Error('トークンが無効です。正しいPATを入力してください。');
-    if (!userRes.ok) throw new Error('GitHub接続失敗 (HTTP ' + userRes.status + ')');
-    const user = await userRes.json();
-    setGhToken(token);
-    setGhUser(user);
-    btn.textContent = 'データを読み込み中...';
-    setSyncBadge('saving');
-    let data;
-    try {
-      data = await ghLoadData();
-    } catch(e) {
-      if (String(e.message).includes('403')) {
-        throw new Error('トークンに gist スコープがありません。トークン作成時に「gist」にチェックを入れてください。');
-      }
-      throw e;
-    }
-    progress = data.progress || {};
-    history  = (data.history || []).filter(h => h.ts > Date.now() - 90 * DAY_MS);
-    setSyncBadge('synced');
-    hideAuthScreen();
-    showView('dashboard');
-    updateBadge();
-  } catch(e) {
-    setGhToken(''); setGhUser(null); setGhGistId('');
-    errEl.textContent = e.message || 'ログインに失敗しました'; errEl.style.display = 'block';
-  } finally {
-    btn.textContent = 'ログイン'; btn.disabled = false;
+  btn.textContent = '接続中...'; btn.disabled = true;
+  try { await _loginWithPat(account.pat); }
+  catch(e) { errEl.textContent = e.message || 'ログイン失敗'; errEl.style.display = 'block'; }
+  finally { btn.textContent = 'ログイン'; btn.disabled = false; }
+}
+
+async function doSetup() {
+  const uid   = document.getElementById('setup-uid').value.trim();
+  const pw    = document.getElementById('setup-pw').value;
+  const pat   = document.getElementById('setup-pat').value.trim();
+  const errEl = document.getElementById('setup-err');
+  const btn   = document.getElementById('setup-btn');
+  if (!uid) { errEl.textContent = 'ユーザーIDを入力してください'; errEl.style.display = 'block'; return; }
+  if (!pw)  { errEl.textContent = 'パスワードを入力してください'; errEl.style.display = 'block'; return; }
+  if (!pat) { errEl.textContent = 'GitHub PATを入力してください'; errEl.style.display = 'block'; return; }
+  if (loadAccounts().find(a => a.uid === uid)) {
+    errEl.textContent = 'そのユーザーIDは既に登録されています'; errEl.style.display = 'block'; return;
   }
+  errEl.style.display = 'none';
+  btn.textContent = '確認中...'; btn.disabled = true;
+  try {
+    const r = await fetch(GH_API + '/user', {
+      headers: { 'Authorization': 'token ' + pat, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (r.status === 401) throw new Error('PATが無効です');
+    if (!r.ok) throw new Error('GitHub接続失敗 (' + r.status + ')');
+    const ghUser = await r.json();
+    const accounts = loadAccounts();
+    accounts.push({ uid, pwHash: hashPw(pw), pat, ghLogin: ghUser.login });
+    saveAccounts(accounts);
+    await _loginWithPat(pat);
+  } catch(e) {
+    errEl.textContent = e.message || '登録に失敗しました'; errEl.style.display = 'block';
+  } finally {
+    btn.textContent = '登録してスタート →'; btn.disabled = false;
+  }
+}
+
+async function _loginWithPat(pat) {
+  const r = await fetch(GH_API + '/user', {
+    headers: { 'Authorization': 'token ' + pat, 'Accept': 'application/vnd.github.v3+json' }
+  });
+  if (r.status === 401) throw new Error('PATが期限切れです。設定から再登録してください。');
+  if (!r.ok) throw new Error('GitHub接続失敗 (' + r.status + ')');
+  const ghUser = await r.json();
+  setGhToken(pat);
+  setGhUser(ghUser);
+  setSyncBadge('saving');
+  let data;
+  try { data = await ghLoadData(); }
+  catch(e) {
+    if (String(e.message).includes('403')) throw new Error('PATに gist スコープがありません');
+    throw e;
+  }
+  progress = data.progress || {};
+  history  = (data.history || []).filter(h => h.ts > Date.now() - 90 * DAY_MS);
+  setSyncBadge('synced');
+  hideAuthScreen();
+  showView('dashboard');
+  updateBadge();
 }
 
 function logout() {
@@ -1242,31 +1354,38 @@ function renderSettings() {
   const gistId  = getGhGistId();
   const studied = Object.keys(progress).length;
   const mastered= Object.values(progress).filter(p => p.level >= REVIEW_INTERVALS.length).length;
+  const accounts = loadAccounts();
+  const curAcc   = accounts.find(a => a.ghLogin === user?.login) || accounts[0];
   const avatarUrl = user?.avatar_url;
   const avatarHtml = avatarUrl
     ? `<img src="${avatarUrl}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;flex-shrink:0">`
-    : `<div style="width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;flex-shrink:0">${user ? user.login.charAt(0).toUpperCase() : '?'}</div>`;
+    : `<div style="width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;flex-shrink:0">${(curAcc?.uid||'?').charAt(0).toUpperCase()}</div>`;
   const gistLink = gistId && user
     ? `<a href="https://gist.github.com/${escHtml(user.login)}/${escHtml(gistId)}" target="_blank" rel="noopener"
-         style="font-size:.78rem;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:4px">
-         📄 GitHubでデータを確認
-       </a>`
+         style="font-size:.78rem;color:var(--blue);text-decoration:none">📄 GitHubでデータを確認</a>`
     : '';
   return `
     <div class="card">
-      <div class="card-title">GitHubアカウント</div>
+      <div class="card-title">アカウント</div>
       <div style="display:flex;align-items:center;gap:16px;padding:8px 0 16px">
         ${avatarHtml}
         <div style="flex:1">
-          <div style="font-weight:800;font-size:1.1rem">${escHtml(user?.name || user?.login || '不明')}</div>
+          <div style="font-weight:800;font-size:1.1rem">${escHtml(curAcc?.uid || user?.login || '不明')}</div>
           <div style="font-size:.82rem;color:var(--muted)">@${escHtml(user?.login || '')} · 学習済み ${studied}問 ／ 定着 ${mastered}問</div>
         </div>
       </div>
-      <button onclick="logout()"
-        style="width:100%;padding:13px;background:var(--red-l);color:var(--red);border:none;
-               border-radius:10px;font-weight:700;font-size:.95rem;cursor:pointer">
-        ログアウト
-      </button>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button onclick="logout()"
+          style="width:100%;padding:12px;background:var(--bg);color:var(--text);border:2px solid var(--border);
+                 border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer">
+          ログアウト（このセッションを終了）
+        </button>
+        ${curAcc ? `<button onclick="removeAccount('${escHtml(curAcc.uid)}')"
+          style="width:100%;padding:12px;background:var(--red-l);color:var(--red);border:none;
+                 border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer">
+          このデバイスからアカウントを削除
+        </button>` : ''}
+      </div>
     </div>
     <div class="card">
       <div class="card-title">データ保存場所</div>
@@ -1275,13 +1394,10 @@ function renderSettings() {
           <span style="font-size:1.2rem">☁️</span>
           <div>
             <div style="font-weight:700">GitHub Gist（プライベート）</div>
-            <div style="font-size:.76rem;color:var(--muted)">進捗データはあなたのGitHubアカウントの<br>プライベートGistに保存されます</div>
+            <div style="font-size:.76rem;color:var(--muted)">進捗データはGitHubのプライベートGistに保存</div>
           </div>
         </div>
-        <div style="font-size:.76rem;color:var(--muted);padding-top:8px;border-top:1px solid var(--border)">
-          📱 別端末からも同じPATでログインすれば自動的に同期
-        </div>
-        ${gistId ? `<div style="margin-top:8px">${gistLink}</div>` : ''}
+        ${gistId ? `<div style="margin-top:6px">${gistLink}</div>` : ''}
       </div>
     </div>
     <div class="card">
@@ -1294,6 +1410,16 @@ function renderSettings() {
           onclick="if(confirm('学習進捗・履歴をすべてリセットしますか？'))resetAll()">🗑️ 進捗をリセット</button>
       </div>
     </div>`;
+}
+
+function removeAccount(uid) {
+  if (!confirm(`「${uid}」をこのデバイスから削除しますか？\nGitHubのデータは保持されます。`)) return;
+  const accounts = loadAccounts().filter(a => a.uid !== uid);
+  saveAccounts(accounts);
+  clearTimeout(_saveTimer);
+  clearSession();
+  progress = {}; history = [];
+  showAuthScreen();
 }
 
 function updateBadge() {
