@@ -439,9 +439,15 @@
       onkeydown="if(event.key==='Enter')authWithGitHub()">
     <div id="auth-err" style="color:#dc2626;font-size:.82rem;margin-bottom:8px;display:none"></div>
     <button class="auth-btn" id="auth-submit-btn" onclick="authWithGitHub()">ログイン</button>
-    <div style="margin-top:18px;font-size:.76rem;color:#64748b;line-height:1.6;text-align:left">
-      トークンの作成: GitHub → Settings → Developer settings →<br>
-      Personal access tokens → <strong>gist</strong> スコープにチェック
+    <div style="margin-top:18px;background:#f8fafc;border-radius:10px;padding:14px;font-size:.76rem;color:#475569;line-height:1.8;text-align:left">
+      <div style="font-weight:700;color:#334155;margin-bottom:6px">トークンの作成方法</div>
+      GitHub → Settings → Developer settings<br>
+      → Personal access tokens → Tokens (classic)<br>
+      → Generate new token → <strong style="color:#2563eb">gist</strong> スコープにチェック<br>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;color:#64748b">
+        📱 別の端末からも同じトークンでログインすれば<br>
+        　  学習データは自動的に同期されます
+      </div>
     </div>
   </div>
 </div>
@@ -520,8 +526,8 @@ function getGhToken()    { return sessionStorage.getItem('gh_token'); }
 function setGhToken(t)   { sessionStorage.setItem('gh_token', t); }
 function getGhUser()     { try { return JSON.parse(sessionStorage.getItem('gh_user') || 'null'); } catch { return null; } }
 function setGhUser(u)    { sessionStorage.setItem('gh_user', JSON.stringify(u)); }
-function getGhGistId()   { return sessionStorage.getItem('gh_gist_id'); }
-function setGhGistId(id) { sessionStorage.setItem('gh_gist_id', id); }
+function getGhGistId()   { return sessionStorage.getItem('gh_gist_id') || ''; }
+function setGhGistId(id) { id ? sessionStorage.setItem('gh_gist_id', id) : sessionStorage.removeItem('gh_gist_id'); }
 function clearSession()  { sessionStorage.clear(); }
 
 async function ghFetch(path, opts = {}) {
@@ -541,13 +547,18 @@ async function ghFetch(path, opts = {}) {
 }
 
 async function ghFindOrCreateGist() {
-  const r = await ghFetch('/gists?per_page=100');
-  const gists = await r.json();
-  const found = gists.find(g => g.description === GIST_DESC && g.files[GIST_FILE]);
-  if (found) { setGhGistId(found.id); return found.id; }
+  let page = 1;
+  while (true) {
+    const r = await ghFetch(`/gists?per_page=100&page=${page}`);
+    const gists = await r.json();
+    const found = gists.find(g => g.description === GIST_DESC && g.files[GIST_FILE]);
+    if (found) { setGhGistId(found.id); return found.id; }
+    if (gists.length < 100) break;
+    page++;
+  }
   const cr = await ghFetch('/gists', {
     method: 'POST',
-    body: { description: GIST_DESC, public: false, files: { [GIST_FILE]: { content: '{}' } } }
+    body: { description: GIST_DESC, public: false, files: { [GIST_FILE]: { content: '{"progress":{},"history":[]}' } } }
   });
   const g = await cr.json();
   setGhGistId(g.id);
@@ -617,17 +628,27 @@ async function authWithGitHub() {
     errEl.textContent = 'トークンを入力してください'; errEl.style.display = 'block'; return;
   }
   errEl.style.display = 'none';
-  btn.textContent = '確認中...'; btn.disabled = true;
+  btn.textContent = 'GitHubに接続中...'; btn.disabled = true;
   try {
-    const r = await fetch(GH_API + '/user', {
+    const userRes = await fetch(GH_API + '/user', {
       headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
     });
-    if (!r.ok) throw new Error('認証失敗 (HTTP ' + r.status + ')');
-    const user = await r.json();
+    if (userRes.status === 401) throw new Error('トークンが無効です。正しいPATを入力してください。');
+    if (!userRes.ok) throw new Error('GitHub接続失敗 (HTTP ' + userRes.status + ')');
+    const user = await userRes.json();
     setGhToken(token);
     setGhUser(user);
+    btn.textContent = 'データを読み込み中...';
     setSyncBadge('saving');
-    const data = await ghLoadData();
+    let data;
+    try {
+      data = await ghLoadData();
+    } catch(e) {
+      if (String(e.message).includes('403')) {
+        throw new Error('トークンに gist スコープがありません。トークン作成時に「gist」にチェックを入れてください。');
+      }
+      throw e;
+    }
     progress = data.progress || {};
     history  = (data.history || []).filter(h => h.ts > Date.now() - 90 * DAY_MS);
     setSyncBadge('synced');
@@ -635,6 +656,7 @@ async function authWithGitHub() {
     showView('dashboard');
     updateBadge();
   } catch(e) {
+    setGhToken(''); setGhUser(null); setGhGistId('');
     errEl.textContent = e.message || 'ログインに失敗しました'; errEl.style.display = 'block';
   } finally {
     btn.textContent = 'ログイン'; btn.disabled = false;
@@ -1217,12 +1239,19 @@ function showView(name) {
 // ═══════════════════════════════════════════════════════════════
 function renderSettings() {
   const user    = getGhUser();
+  const gistId  = getGhGistId();
   const studied = Object.keys(progress).length;
   const mastered= Object.values(progress).filter(p => p.level >= REVIEW_INTERVALS.length).length;
   const avatarUrl = user?.avatar_url;
   const avatarHtml = avatarUrl
     ? `<img src="${avatarUrl}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;flex-shrink:0">`
     : `<div style="width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;flex-shrink:0">${user ? user.login.charAt(0).toUpperCase() : '?'}</div>`;
+  const gistLink = gistId && user
+    ? `<a href="https://gist.github.com/${escHtml(user.login)}/${escHtml(gistId)}" target="_blank" rel="noopener"
+         style="font-size:.78rem;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+         📄 GitHubでデータを確認
+       </a>`
+    : '';
   return `
     <div class="card">
       <div class="card-title">GitHubアカウント</div>
@@ -1238,6 +1267,22 @@ function renderSettings() {
                border-radius:10px;font-weight:700;font-size:.95rem;cursor:pointer">
         ログアウト
       </button>
+    </div>
+    <div class="card">
+      <div class="card-title">データ保存場所</div>
+      <div style="background:var(--bg);border-radius:10px;padding:14px;font-size:.85rem;line-height:1.7">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:1.2rem">☁️</span>
+          <div>
+            <div style="font-weight:700">GitHub Gist（プライベート）</div>
+            <div style="font-size:.76rem;color:var(--muted)">進捗データはあなたのGitHubアカウントの<br>プライベートGistに保存されます</div>
+          </div>
+        </div>
+        <div style="font-size:.76rem;color:var(--muted);padding-top:8px;border-top:1px solid var(--border)">
+          📱 別端末からも同じPATでログインすれば自動的に同期
+        </div>
+        ${gistId ? `<div style="margin-top:8px">${gistLink}</div>` : ''}
+      </div>
     </div>
     <div class="card">
       <div class="card-title">データ管理</div>
