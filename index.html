@@ -787,17 +787,23 @@ function shuffle(arr) {
   return arr;
 }
 
+function getTodayAnsweredIds() {
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  return new Set(history.filter(x => x.ts >= todayStart.getTime()).map(x => x.qid));
+}
+
 function buildQueue(mode, genreId) {
-  const qs = usableQuestions(genreId);
+  const qs   = usableQuestions(genreId);
+  const done = getTodayAnsweredIds();
   let ids;
   if (mode === 'review') {
-    ids = qs.filter(q => { const p=progress[q.id]; return p && p.level>0 && isDue(p); }).map(q=>q.id);
+    ids = qs.filter(q => !done.has(q.id) && progress[q.id] && progress[q.id].level > 0 && isDue(progress[q.id])).map(q=>q.id);
   } else if (mode === 'new') {
-    ids = qs.filter(q => !progress[q.id] || progress[q.id].level===0).map(q=>q.id).slice(0,20);
+    ids = qs.filter(q => !done.has(q.id) && (!progress[q.id] || progress[q.id].level===0)).map(q=>q.id).slice(0,20);
   } else if (mode === 'daily') {
     return buildDailyQueue(genreId);
   } else {
-    ids = qs.filter(q => { const p=progress[q.id]; return !p || p.level < REVIEW_INTERVALS.length; }).map(q=>q.id);
+    ids = qs.filter(q => !done.has(q.id) && (!progress[q.id] || progress[q.id].level < REVIEW_INTERVALS.length)).map(q=>q.id);
   }
   return shuffle(ids);
 }
@@ -806,16 +812,23 @@ function buildDailyQueue(genreId) {
   const today  = new Date(); today.setHours(0,0,0,0);
   const uid    = getCurUid() || 'guest';
   const dayKey = `toeic_daily_${uid}_${today.toISOString().slice(0,10)}${genreId?'_'+genreId:''}`;
+  const done   = getTodayAnsweredIds();
   const saved  = sessionStorage.getItem(dayKey);
   if (saved) {
-    try { const q = JSON.parse(saved); if (Array.isArray(q) && q.length) return q; } catch {}
+    try {
+      const q = JSON.parse(saved);
+      if (Array.isArray(q) && q.length) {
+        const remaining = q.filter(id => !done.has(id));
+        if (remaining.length) return remaining;
+      }
+    } catch {}
   }
   const qs   = usableQuestions(genreId);
-  const due  = shuffle(qs.filter(q => { const p=progress[q.id]; return p && p.level>0 && isDue(p); }).map(q=>q.id));
-  const newQ = shuffle(qs.filter(q => !progress[q.id] || progress[q.id].level===0).map(q=>q.id));
+  const due  = shuffle(qs.filter(q => !done.has(q.id) && progress[q.id] && progress[q.id].level>0 && isDue(progress[q.id])).map(q=>q.id));
+  const newQ = shuffle(qs.filter(q => !done.has(q.id) && (!progress[q.id] || progress[q.id].level===0)).map(q=>q.id));
   const combined = [...due, ...newQ].slice(0, DAILY_TARGET);
-  if (!combined.length) return shuffle(qs.map(q=>q.id).slice(0, DAILY_TARGET));
-  sessionStorage.setItem(dayKey, JSON.stringify(combined));
+  if (!combined.length) return shuffle(qs.filter(q => !done.has(q.id)).map(q=>q.id).slice(0, DAILY_TARGET));
+  sessionStorage.setItem(dayKey, JSON.stringify([...due, ...newQ].slice(0, DAILY_TARGET)));
   return combined;
 }
 
