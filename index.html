@@ -1241,11 +1241,6 @@ function renderSettings() {
                  border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer">
           ログアウト
         </button>
-        <button onclick="deleteUser('${escHtml(uid)}')"
-          style="width:100%;padding:12px;background:var(--red-l);color:var(--red);border:none;
-                 border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer">
-          アカウントと進捗データを削除
-        </button>
       </div>
     </div>
     <div class="card">
@@ -1253,8 +1248,6 @@ function renderSettings() {
       <div style="display:flex;flex-direction:column;gap:10px">
         <button class="btn btn-outline" onclick="refreshQuestions()">🔄 問題データを再取得</button>
         <button class="btn btn-outline" onclick="openImport()">📋 JSONを直接貼り付け</button>
-        <button class="btn btn-outline" style="color:var(--red);border-color:var(--red)"
-          onclick="if(confirm('学習進捗・履歴をすべてリセットしますか？'))resetAll()">🗑️ 進捗をリセット</button>
       </div>
     </div>`;
 }
