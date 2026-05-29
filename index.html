@@ -436,18 +436,14 @@
 
     <!-- ログインパネル (アカウント存在時) -->
     <div id="auth-panel-login" style="display:none">
-      <div class="auth-sec-title">ユーザーを選択</div>
-      <div id="auth-ulist" class="auth-ulist"></div>
       <form onsubmit="event.preventDefault();doLogin()" id="auth-login-form">
-        <!-- iOS AutoFill requires a visible or hidden username input paired with password -->
-        <input type="text" id="auth-uid-hidden" autocomplete="username"
-          style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;overflow:hidden">
-        <div id="auth-pw-box" style="display:none;padding-top:4px">
-          <input type="password" id="auth-pw-inp" class="auth-input" placeholder="パスワード"
-            autocomplete="current-password">
-          <div id="auth-err" style="color:#dc2626;font-size:.82rem;margin-bottom:8px;display:none"></div>
-          <button type="submit" class="auth-btn" id="auth-login-btn">ログイン</button>
-        </div>
+        <div id="auth-ulist" class="auth-ulist" style="margin-bottom:12px"></div>
+        <input type="text" id="auth-uid-inp" class="auth-input" placeholder="ユーザーID"
+          autocomplete="username" maxlength="20">
+        <input type="password" id="auth-pw-inp" class="auth-input" placeholder="パスワード"
+          autocomplete="current-password" maxlength="30">
+        <div id="auth-err" style="color:#dc2626;font-size:.82rem;margin-bottom:8px;display:none"></div>
+        <button type="submit" class="auth-btn" id="auth-login-btn">ログイン</button>
       </form>
       <div style="text-align:center;margin-top:16px">
         <button onclick="showSetupPanel()"
@@ -572,8 +568,9 @@ function showLoginPanel() {
   document.getElementById('auth-panel-login').style.display = 'block';
   document.getElementById('auth-panel-setup').style.display = 'none';
   _authUid = null;
-  document.getElementById('auth-ulist').innerHTML = loadUsers().map(u => `
-    <button class="auth-ubtn" id="auth-ubtn-${escHtml(u.uid)}" onclick="selectAuthUser('${escHtml(u.uid)}')">
+  const users = loadUsers();
+  document.getElementById('auth-ulist').innerHTML = users.map(u => `
+    <button type="button" class="auth-ubtn" id="auth-ubtn-${escHtml(u.uid)}" onclick="selectAuthUser('${escHtml(u.uid)}')">
       <div class="auth-uavatar">${u.uid.charAt(0).toUpperCase()}</div>
       <div style="flex:1;text-align:left">
         <div class="auth-uname">${escHtml(u.uid)}</div>
@@ -581,7 +578,8 @@ function showLoginPanel() {
       <span style="color:var(--muted);font-size:1.1rem">›</span>
     </button>
   `).join('');
-  document.getElementById('auth-pw-box').style.display = 'none';
+  document.getElementById('auth-uid-inp').value = '';
+  document.getElementById('auth-pw-inp').value = '';
   document.getElementById('auth-err').style.display = 'none';
 }
 
@@ -596,23 +594,22 @@ function showSetupPanel() {
 }
 
 function selectAuthUser(uid) {
-  _authUid = uid;
   document.querySelectorAll('.auth-ubtn').forEach(b => b.style.borderColor = '');
   const btn = document.getElementById('auth-ubtn-' + uid);
   if (btn) btn.style.borderColor = 'var(--blue)';
-  document.getElementById('auth-uid-hidden').value = uid;
-  document.getElementById('auth-pw-box').style.display = 'block';
+  document.getElementById('auth-uid-inp').value = uid;
   document.getElementById('auth-err').style.display = 'none';
-  document.getElementById('auth-pw-inp').value = '';
   setTimeout(() => document.getElementById('auth-pw-inp').focus(), 50);
 }
 
 function doLogin() {
+  const uid   = document.getElementById('auth-uid-inp').value.trim();
   const pw    = document.getElementById('auth-pw-inp').value;
   const errEl = document.getElementById('auth-err');
-  if (!_authUid) return;
-  const user = loadUsers().find(u => u.uid === _authUid);
-  if (!user) return;
+  if (!uid) { errEl.textContent = 'ユーザーIDを入力してください'; errEl.style.display = 'block'; return; }
+  if (!pw)  { errEl.textContent = 'パスワードを入力してください'; errEl.style.display = 'block'; return; }
+  const user = loadUsers().find(u => u.uid === uid);
+  if (!user) { errEl.textContent = 'ユーザーが見つかりません'; errEl.style.display = 'block'; return; }
   if (user.pwHash !== hashPw(pw)) {
     errEl.textContent = 'パスワードが違います'; errEl.style.display = 'block';
     document.getElementById('auth-pw-inp').value = '';
