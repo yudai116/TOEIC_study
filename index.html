@@ -718,8 +718,11 @@ function updateQProgress(progress, qid, correct) {
 let questions = [];
 let progress  = {};
 let history   = [];
-let session   = null;
-let usingDemo = false;
+let session       = null;
+let usingDemo     = false;
+let timerInterval = null;
+let timerLeft     = 0;
+let timerTotal    = 0;
 
 const DEMO_QUESTIONS = [
   { id:1, question:"The committee _____ three times since the beginning of this year.",
@@ -968,6 +971,74 @@ function startSession(mode, genreId) {
   renderQuestion();
 }
 
+// ── タイマー ────────────────────────────────────────────────────
+function calcTimeLimit(q) {
+  const qLen = (q.question || '').replace(/_{3,}|——-+/g, '____').length;
+  const cLen = Object.values(q.choices || {}).join('').length;
+  return Math.max(15, Math.min(60, 15 + Math.ceil(qLen / 8) + Math.ceil(cLen / 12)));
+}
+
+function clearTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+function updateTimerUI() {
+  const numEl = document.getElementById('timer-num');
+  const barEl = document.getElementById('timer-bar');
+  if (!numEl || !barEl) return;
+  const pct = timerTotal > 0 ? timerLeft / timerTotal : 0;
+  numEl.textContent = timerLeft;
+  barEl.style.width = (pct * 100) + '%';
+  const color = pct > 0.5 ? 'var(--green)' : pct > 0.25 ? 'var(--amber)' : 'var(--red)';
+  barEl.style.background = color;
+  numEl.style.color = color;
+}
+
+function startTimer(seconds, qid) {
+  clearTimer();
+  timerTotal = seconds;
+  timerLeft  = seconds;
+  updateTimerUI();
+  timerInterval = setInterval(() => {
+    timerLeft--;
+    updateTimerUI();
+    if (timerLeft <= 0) {
+      clearTimer();
+      handleTimeout(qid);
+    }
+  }, 1000);
+}
+
+function handleTimeout(qid) {
+  const q = questions.find(x => x.id == qid);
+  if (!q) return;
+  ['A','B','C','D'].forEach(l => {
+    const btn = document.getElementById('choice-' + l);
+    if (btn) { btn.disabled = true; if (l === q.answer) btn.classList.add('correct'); }
+  });
+  progress = updateQProgress(progress, qid, false);
+  saveProgress(progress);
+  recordStudy(qid, false);
+  session.wrong++;
+  const p = progress[qid];
+  const nextDate = formatNextReview(p);
+  document.getElementById('feedback').innerHTML = `
+    <div class="feedback wrong-fb">
+      <div class="feedback-title">⏰ 時間切れ！（正解: (${q.answer}) ${escHtml(q.choices[q.answer])}）</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:10px">
+        次回の復習: <b>${nextDate}</b>
+        <span class="level-chip lv${Math.min(p.level,7)}" style="margin-left:6px">${LEVEL_LABELS[Math.min(p.level,7)]}</span>
+      </div>
+      ${q.translation ? `<div class="detail-section"><div class="detail-label">訳</div><div class="detail-text">${escHtml(q.translation)}</div></div>` : ''}
+      ${q.explanation ? `<div class="detail-section"><div class="detail-label">解説</div><div class="detail-text">${escHtml(q.explanation)}</div></div>` : ''}
+      ${q.vocabulary  ? `<div class="detail-section"><div class="detail-label">語彙</div><div class="detail-text">${escHtml(q.vocabulary)}</div></div>`  : ''}
+    </div>
+    <button class="next-btn" onclick="nextQuestion()">
+      ${session.idx + 1 < session.queue.length ? '次の問題 →' : '結果を見る'}
+    </button>`;
+  updateBadge();
+}
+
 function renderQuestion() {
   if (!session || session.idx >= session.queue.length) { renderResult(); return; }
   const qid   = session.queue[session.idx];
@@ -979,6 +1050,7 @@ function renderQuestion() {
   const qText = q.question.replace(/_{3,}|——-+/g, '<span class="q-blank">　　　　</span>');
   const modeLabel = { daily:'📅 今日の100問', review:'🔄 復習', new:'✨ 新規', all:'📖 全問' }[session.mode] || '📖 学習';
 
+  const timeLimit = calcTimeLimit(q);
   document.getElementById('view').innerHTML = `
     <div class="session-header">
       <div class="session-info">${modeLabel}</div>
@@ -992,6 +1064,12 @@ function renderQuestion() {
         第 ${q.id} 問
         <span class="level-chip lv${Math.min(lv,7)}" style="margin-left:8px">${LEVEL_LABELS[Math.min(lv,7)]}</span>
       </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="flex:1;height:7px;background:var(--border);border-radius:999px;overflow:hidden">
+          <div id="timer-bar" style="height:100%;border-radius:999px;width:100%;background:var(--green);transition:width 1s linear,background .4s"></div>
+        </div>
+        <div id="timer-num" style="font-size:.95rem;font-weight:800;min-width:26px;text-align:right;color:var(--green)"></div>
+      </div>
       <div class="q-text">${qText}</div>
       <div class="choices" id="choices">
         ${['A','B','C','D'].map(l => `
@@ -1002,9 +1080,11 @@ function renderQuestion() {
       </div>
     </div>
     <div id="feedback"></div>`;
+  startTimer(timeLimit, qid);
 }
 
 function selectAnswer(selected, qid) {
+  clearTimer();
   const q       = questions.find(x => x.id == qid);
   const correct = selected === q.answer;
   ['A','B','C','D'].forEach(l => {
@@ -1202,6 +1282,7 @@ function renderLevelBarsById(id, stats) {
 //  ナビゲーション
 // ═══════════════════════════════════════════════════════════════
 function showView(name) {
+  clearTimer();
   const view = document.getElementById('view');
   ['dash','study','stats','settings'].forEach(id => document.getElementById('nav-'+id)?.classList.remove('active'));
   if (name === 'dashboard') {
