@@ -424,6 +424,49 @@
       border-radius: 10px; padding: 14px 16px;
       font-weight: 700; text-align: center; font-size: .98rem;
     }
+    /* ── 文法解説ページ ── */
+    .grammar-card {
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden;
+    }
+    .grammar-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 20px; cursor: pointer; user-select: none;
+      transition: background .15s;
+    }
+    .grammar-header:hover { background: var(--bg); }
+    .grammar-emoji { font-size: 1.5rem; flex-shrink: 0; }
+    .grammar-title { font-size: 1rem; font-weight: 700; flex: 1; }
+    .grammar-summary { font-size: .82rem; color: var(--muted); margin-top: 2px; }
+    .grammar-chevron { font-size: 1rem; color: var(--muted); transition: transform .2s; }
+    .grammar-card.open .grammar-chevron { transform: rotate(90deg); }
+    .grammar-body { display: none; padding: 0 20px 20px; border-top: 1px solid var(--border); }
+    .grammar-card.open .grammar-body { display: block; }
+    .grammar-section { margin-top: 18px; }
+    .grammar-section-title {
+      font-size: .8rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--blue); margin-bottom: 10px;
+    }
+    .rule-box {
+      background: var(--blue-l); border-left: 3px solid var(--blue);
+      border-radius: 0 8px 8px 0; padding: 10px 14px; margin-bottom: 8px;
+      font-size: .9rem; line-height: 1.7;
+    }
+    .rule-box code {
+      background: rgba(37,99,235,.12); border-radius: 4px;
+      padding: 1px 5px; font-family: monospace; font-size: .9em; color: var(--blue-d);
+    }
+    .tip-box {
+      background: var(--amber-l); border-left: 3px solid var(--amber);
+      border-radius: 0 8px 8px 0; padding: 10px 14px; margin-bottom: 8px;
+      font-size: .88rem; line-height: 1.7;
+    }
+    .example-table { width: 100%; border-collapse: collapse; font-size: .87rem; margin-top: 4px; }
+    .example-table tr { border-bottom: 1px solid var(--border); }
+    .example-table tr:last-child { border-bottom: none; }
+    .example-table td { padding: 7px 8px; vertical-align: top; }
+    .example-table td:first-child { color: var(--text); font-weight: 500; width: 52%; }
+    .example-table td:last-child { color: var(--muted); }
   </style>
 </head>
 <body>
@@ -483,6 +526,7 @@
     <button class="nav-btn" id="nav-stats" onclick="showView('stats')">
       統計 <span class="badge" id="review-badge" style="display:none">0</span>
     </button>
+    <button class="nav-btn" id="nav-grammar" onclick="showView('grammar')">文法</button>
     <button class="nav-btn" id="nav-settings" onclick="showView('settings')">⚙️設定</button>
   </div>
 </nav>
@@ -1308,7 +1352,7 @@ function renderLevelBarsById(id, stats) {
 function showView(name) {
   clearTimer();
   const view = document.getElementById('view');
-  ['dash','study','stats','settings'].forEach(id => document.getElementById('nav-'+id)?.classList.remove('active'));
+  ['dash','study','stats','grammar','settings'].forEach(id => document.getElementById('nav-'+id)?.classList.remove('active'));
   if (name === 'dashboard') {
     document.getElementById('nav-dash').classList.add('active');
     view.innerHTML = renderDashboard();
@@ -1320,6 +1364,9 @@ function showView(name) {
   } else if (name === 'study-menu') {
     document.getElementById('nav-study').classList.add('active');
     view.innerHTML = renderStudyMenu();
+  } else if (name === 'grammar') {
+    document.getElementById('nav-grammar').classList.add('active');
+    view.innerHTML = renderGrammarGuide();
   } else if (name === 'settings') {
     document.getElementById('nav-settings').classList.add('active');
     view.innerHTML = renderSettings();
@@ -1330,6 +1377,423 @@ function showView(name) {
 // ═══════════════════════════════════════════════════════════════
 //  ビュー：設定
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  ビュー：文法解説
+// ═══════════════════════════════════════════════════════════════
+const GRAMMAR_DATA = [
+  {
+    id:'tense', emoji:'⏰', label:'時制',
+    summary:'動詞の時間的な位置づけを表す。TOEICでは完了形・仮定法が最頻出。',
+    sections:[
+      { title:'現在完了形（have/has + 過去分詞）',
+        rules:[
+          '<code>have/has + 過去分詞</code>　→　過去の出来事が「今」に関係する',
+          '継続：<code>I have worked here since 2010.</code>（2010年からずっと働いている）',
+          '経験：<code>She has visited Paris twice.</code>（パリに2回行ったことがある）',
+          '完了：<code>He has just finished the report.</code>（ちょうど終えたところだ）',
+          '⚠️ since（〜以来）/ for（〜の間）/ already / yet / just / ever などと一緒に使われることが多い',
+        ],
+        tips:['TOEICでは「since + 過去の時点」や「for + 期間」がヒントになる。', 'yesterdayやlast yearなど「過去の特定時点」がある場合は過去形を使う。'],
+        examples:[
+          ['The company has grown rapidly since 2015.','その会社は2015年以来急速に成長している。'],
+          ['Have you ever attended this conference?','あなたはこの会議に参加したことがありますか？'],
+        ]
+      },
+      { title:'過去完了形（had + 過去分詞）',
+        rules:[
+          '<code>had + 過去分詞</code>　→　過去のある時点より「さらに前」の出来事',
+          '「大過去」とも呼ばれ、過去形と組み合わせて前後関係を明確にする',
+          '<code>By the time she arrived, the meeting had already started.</code>',
+        ],
+        tips:['by the time / when / before / after などの接続詞と一緒に出題されやすい。'],
+        examples:[
+          ['He had already left when I called.','私が電話したとき、彼はすでに出発していた。'],
+          ['The project had been completed before the deadline.','締め切り前にプロジェクトは完了していた。'],
+        ]
+      },
+      { title:'仮定法過去（現在の事実に反する仮定）',
+        rules:[
+          '形：<code>If + 主語 + 動詞の過去形, 主語 + would/could/might + 動詞の原形</code>',
+          '意味：「もし今〜だったら（実際はそうでないが）、〜するのに」',
+          '例：<code>If I were rich, I would buy a car.</code>（実際は裕福でない）',
+          '⚠️ Ifのあとは主語がI/he/she/itでも <code>were</code> を使うのが正式',
+        ],
+        tips:['仮定法はwere/would/couldがセットで出てくるのがヒント。', '「現実には起きていないこと」を表すため、文脈で判断する。'],
+        examples:[
+          ['If she were here, she would help us.','もし彼女がここにいたら、助けてくれるのに。'],
+          ['We could finish sooner if we had more staff.','もっとスタッフがいれば、もっと早く終わるのに。'],
+        ]
+      },
+      { title:'仮定法過去完了（過去の事実に反する仮定）',
+        rules:[
+          '形：<code>If + 主語 + had + 過去分詞, 主語 + would have + 過去分詞</code>',
+          '意味：「もしあのとき〜だったら（実際はそうでなかった）、〜していたのに」',
+          '例：<code>If I had studied harder, I would have passed.</code>',
+        ],
+        tips:['TOEICでは「had + p.p.」と「would have + p.p.」のセットで出題される。'],
+        examples:[
+          ['If they had left earlier, they would have caught the train.','もっと早く出発していたら、電車に乗れていたのに。'],
+        ]
+      },
+    ]
+  },
+  {
+    id:'passive', emoji:'🔄', label:'受動態',
+    summary:'「〜される・された」という受け身の表現。be動詞＋過去分詞が基本形。',
+    sections:[
+      { title:'受動態の基本形',
+        rules:[
+          '形：<code>be動詞 + 過去分詞 (+ by 〜)</code>',
+          '能動態：<code>The manager approved the plan.</code>',
+          '受動態：<code>The plan was approved (by the manager).</code>',
+          '行為者（by 〜）は不明・重要でない場合は省略される',
+        ],
+        tips:['TOEICでは「be + p.p.」か「have + p.p.（能動の完了形）」かを問う問題が頻出。', '主語が「される側」なら受動態。'],
+        examples:[
+          ['The report was submitted on time.','報告書は期日通りに提出された。'],
+          ['New employees are required to attend the orientation.','新入社員はオリエンテーションへの参加が求められる。'],
+        ]
+      },
+      { title:'受動態と一緒に使われる前置詞',
+        rules:[
+          'by以外の前置詞を使う慣用表現に注意：',
+          '<code>be known to</code>（〜に知られている）',
+          '<code>be interested in</code>（〜に興味がある）',
+          '<code>be satisfied with</code>（〜に満足している）',
+          '<code>be concerned about</code>（〜を心配している）',
+          '<code>be composed of</code>（〜から成っている）',
+        ],
+        tips:['byではなく特定の前置詞とセットで覚える表現が多い。語彙問題でも出題される。'],
+        examples:[
+          ['She is known to everyone in the department.','彼女は部署の全員に知られている。'],
+          ['The team is composed of specialists from various fields.','チームはさまざまな分野の専門家で構成されている。'],
+        ]
+      },
+    ]
+  },
+  {
+    id:'modal', emoji:'🔧', label:'助動詞',
+    summary:'動詞の前に置いて可能・義務・推量などを表す。can/will/must/shouldなどが代表的。',
+    sections:[
+      { title:'主な助動詞の意味',
+        rules:[
+          '<code>can / could</code>　→　能力「〜できる」／許可「〜してもよい」／可能性「〜かもしれない」',
+          '<code>will / would</code>　→　意志「〜するつもり」／推量「〜だろう」／丁寧な依頼',
+          '<code>may / might</code>　→　許可「〜してもよい」／推量「〜かもしれない」',
+          '<code>must</code>　→　強い義務「〜しなければならない」／強い確信「〜に違いない」',
+          '<code>should / ought to</code>　→　義務・勧告「〜すべき」／推量「〜のはず」',
+          '<code>have to</code>　→　外部的な義務「〜しなければならない」（mustより柔軟）',
+        ],
+        tips:['mustは主観的義務、have toは客観的義務というニュアンスの違いに注意。'],
+        examples:[
+          ['You should submit the form by Friday.','金曜日までに書類を提出すべきです。'],
+          ['The package must have been delivered already.','荷物はすでに配達されたに違いない。'],
+        ]
+      },
+      { title:'助動詞＋have＋過去分詞（過去への推量・後悔）',
+        rules:[
+          '<code>must have + p.p.</code>　→　「〜だったに違いない」（過去の強い確信）',
+          '<code>should have + p.p.</code>　→　「〜すべきだったのに（しなかった）」（後悔・批判）',
+          '<code>could have + p.p.</code>　→　「〜できたのに（しなかった）」',
+          '<code>may/might have + p.p.</code>　→　「〜だったかもしれない」',
+        ],
+        tips:['この形はTOEICでも頻出。「過去のことについて述べている」文脈がヒント。'],
+        examples:[
+          ['She could have taken a different approach.','彼女は別のアプローチを取ることができたのに。'],
+          ['The delay must have been caused by the weather.','遅延は天気によるものだったに違いない。'],
+        ]
+      },
+    ]
+  },
+  {
+    id:'rel', emoji:'🔗', label:'関係詞',
+    summary:'名詞を後ろから修飾する節を作る。関係代名詞（who/which/that）と関係副詞（where/when）が主役。',
+    sections:[
+      { title:'関係代名詞',
+        rules:[
+          '先行詞が「人」→ <code>who</code>（主格）/ <code>whom</code>（目的格）',
+          '先行詞が「物・事」→ <code>which</code>（主格・目的格）',
+          '<code>that</code> は人にも物にも使える（ただし非制限用法では使えない）',
+          '関係節の中で目的語の役割のとき→省略可能：<code>The book (that) I read was interesting.</code>',
+        ],
+        tips:['空欄の後が動詞→主格（who/which/that）、空欄の後が主語+動詞→目的格（whom/which/that）または省略。'],
+        examples:[
+          ['The employee who submitted the report received praise.','報告書を提出した従業員は称賛を受けた。'],
+          ['Please return the form that you received yesterday.','昨日受け取った書類を返送してください。'],
+        ]
+      },
+      { title:'関係副詞',
+        rules:[
+          '<code>where</code>　→　場所を表す先行詞に続く（the office where we work）',
+          '<code>when</code>　→　時を表す先行詞に続く（the day when we met）',
+          '<code>why</code>　→　理由を表す先行詞に続く（the reason why he left）',
+          '<code>how</code>　→　先行詞なしで使う（how he did it = the way he did it）',
+        ],
+        tips:['関係副詞の後は「完全な文（主語＋動詞がそろっている）」が来る。関係代名詞の後は不完全な文。'],
+        examples:[
+          ['This is the building where the conference will be held.','これが会議が開かれるビルです。'],
+          ['I remember the year when the company was founded.','会社が設立された年を覚えています。'],
+        ]
+      },
+    ]
+  },
+  {
+    id:'prep', emoji:'📍', label:'前置詞',
+    summary:'名詞の前に置いて時間・場所・方向などの関係を表す。TOEICではビジネス文書での使い方が頻出。',
+    sections:[
+      { title:'時間の前置詞',
+        rules:[
+          '<code>at</code>　→　時刻・時点：<code>at 9 a.m. / at noon / at the end</code>',
+          '<code>on</code>　→　日付・曜日：<code>on Monday / on July 5th</code>',
+          '<code>in</code>　→　月・年・季節・時間帯：<code>in March / in 2024 / in the morning</code>',
+          '<code>by</code>　→　期限「〜までに（完了）」：<code>by Friday</code>',
+          '<code>until/till</code>　→　継続「〜まで（ずっと）」：<code>until 5 p.m.</code>',
+          '<code>for</code>　→　期間「〜の間」：<code>for three years</code>',
+          '<code>since</code>　→　起点「〜以来」：<code>since 2020</code>（完了形と一緒に使う）',
+          '<code>during</code>　→　特定期間中「〜の間」：<code>during the meeting</code>',
+          '<code>within</code>　→　〜以内に：<code>within a week</code>',
+        ],
+        tips:['by（完了）とuntil（継続）の違いはよく出題される。「I will finish by Friday.」vs「I will stay until Friday.」'],
+        examples:[
+          ['Please submit the application by the end of the month.','月末までに申請書を提出してください。'],
+          ['The store is open during the holiday season.','その店は休暇シーズン中は営業している。'],
+        ]
+      },
+      { title:'場所・方向の前置詞',
+        rules:[
+          '<code>at</code>　→　地点・場所：<code>at the station / at the office</code>',
+          '<code>in</code>　→　広い場所・内部：<code>in Tokyo / in the room</code>',
+          '<code>on</code>　→　接触・表面：<code>on the table / on the wall</code>',
+          '<code>above/below</code>　→　上方・下方（接触しない）',
+          '<code>between</code>　→　2者の間：<code>between A and B</code>',
+          '<code>among</code>　→　3者以上の間：<code>among the employees</code>',
+        ],
+        tips:[''],
+        examples:[
+          ['The meeting will be held at the main conference room.','会議はメイン会議室で開催される。'],
+          ['The notice was posted on the bulletin board.','お知らせは掲示板に貼られた。'],
+        ]
+      },
+      { title:'重要なビジネス前置詞',
+        rules:[
+          '<code>despite / in spite of</code>　→　〜にもかかわらず（後ろに名詞）',
+          '<code>due to / because of / owing to</code>　→　〜のために・〜が原因で',
+          '<code>regarding / concerning / about</code>　→　〜に関して',
+          '<code>except (for)</code>　→　〜を除いて',
+          '<code>instead of</code>　→　〜の代わりに',
+          '<code>according to</code>　→　〜によれば',
+        ],
+        tips:['despite/due toの後には名詞（句）が来る。because/althoughの後には文（主語+動詞）が来る。この区別が頻出。'],
+        examples:[
+          ['Despite the heavy rain, the event was not cancelled.','大雨にもかかわらず、イベントは中止されなかった。'],
+          ['The delay was due to a technical issue.','遅延は技術的な問題が原因だった。'],
+        ]
+      },
+    ]
+  },
+  {
+    id:'conj', emoji:'💬', label:'接続詞',
+    summary:'文と文、語と語を結ぶ。前置詞との使い分けがTOEICで頻出。',
+    sections:[
+      { title:'従属接続詞（文と文をつなぐ）',
+        rules:[
+          '<code>because</code>　→　〜だから（理由）',
+          '<code>although / though / even though</code>　→　〜にもかかわらず（逆接）',
+          '<code>while / whereas</code>　→　〜する一方で（対比・同時）',
+          '<code>if / unless</code>　→　もし〜なら／〜しない限り（条件）',
+          '<code>as long as</code>　→　〜する限り',
+          '<code>before / after / when / once</code>　→　時を表す',
+          '⚠️ 接続詞の後ろには「主語＋動詞」の文が続く',
+        ],
+        tips:['「although（接続詞）」vs「despite（前置詞）」の区別が最頻出。althoughの後は文、despiteの後は名詞。'],
+        examples:[
+          ['Although the price is high, the quality is excellent.','値段は高いが、品質は素晴らしい。'],
+          ['Please call me before you leave the office.','オフィスを出る前に電話してください。'],
+        ]
+      },
+      { title:'相関接続詞',
+        rules:[
+          '<code>both A and B</code>　→　AもBも両方',
+          '<code>either A or B</code>　→　AかBかどちらか',
+          '<code>neither A nor B</code>　→　AもBもどちらでもない',
+          '<code>not only A but also B</code>　→　AだけでなくBも',
+          '<code>not A but B</code>　→　AではなくB',
+          '⚠️ 動詞の数はBに合わせる（Neither he nor they are...）',
+        ],
+        tips:['not only A but also Bは「BまでもAと同様に〜」という強調のニュアンス。TOEICでは語順が問われることも。'],
+        examples:[
+          ['Not only the price but also the quality matters.','価格だけでなく品質も重要だ。'],
+          ['Either the manager or the assistant will attend.','マネージャーかアシスタントのどちらかが出席する。'],
+        ]
+      },
+    ]
+  },
+  {
+    id:'infger', emoji:'📝', label:'不定詞・動名詞',
+    summary:'動詞を名詞・形容詞・副詞として使う形。動詞によって後ろに来る形が異なる。',
+    sections:[
+      { title:'to不定詞の用法',
+        rules:[
+          '名詞的用法：「〜すること」→主語・目的語・補語になる',
+          '　　<code>To travel abroad is my dream.</code>',
+          '形容詞的用法：名詞の後ろに置き修飾「〜するための・〜すべき」',
+          '　　<code>I have a report to finish.</code>',
+          '副詞的用法：目的「〜するために」・結果・原因',
+          '　　<code>He went to the store to buy supplies.</code>',
+        ],
+        tips:[''],
+        examples:[
+          ['She decided to accept the job offer.','彼女はその仕事のオファーを受け入れることにした。'],
+          ['We need someone to handle the accounts.','経理を担当する人材が必要だ。'],
+        ]
+      },
+      { title:'動名詞（動詞のing形）の用法',
+        rules:[
+          '動名詞は「〜すること」という意味の名詞として機能する',
+          '前置詞の後ろに動詞を置くときは必ず動名詞にする',
+          '　　<code>He is good at presenting.</code>（presenting = 動名詞）',
+        ],
+        tips:[''],
+        examples:[
+          ['She enjoys working with the team.','彼女はチームと一緒に働くことを楽しんでいる。'],
+          ['Thank you for attending the meeting.','会議にご出席いただきありがとうございます。'],
+        ]
+      },
+      { title:'動名詞のみ・to不定詞のみをとる動詞',
+        rules:[
+          '動名詞のみ：<code>enjoy / finish / avoid / consider / suggest / mind / practice / keep</code>',
+          'to不定詞のみ：<code>want / hope / decide / refuse / agree / plan / expect / promise</code>',
+          '両方OK（意味が変わる）：',
+          '　<code>remember to do</code>（忘れずに〜する）vs <code>remember doing</code>（〜したことを覚えている）',
+          '　<code>stop to do</code>（〜するために立ち止まる）vs <code>stop doing</code>（〜するのをやめる）',
+          '　<code>try to do</code>（〜しようとする）vs <code>try doing</code>（試しに〜してみる）',
+        ],
+        tips:['TOEICでは空欄の前の動詞が何をとるかを問う問題が頻出。上のリストは必ず覚える。'],
+        examples:[
+          ['The company plans to expand its operations overseas.','その会社は海外に事業を拡大する予定だ。'],
+          ['Please avoid using personal devices during work hours.','勤務時間中は個人の端末の使用を避けてください。'],
+        ]
+      },
+    ]
+  },
+  {
+    id:'comp', emoji:'📊', label:'比較',
+    summary:'2つ以上のものを比べる表現。原級・比較級・最上級の3段階がある。',
+    sections:[
+      { title:'原級・比較級・最上級の作り方',
+        rules:[
+          '短い語（1〜2音節）：<code>fast → faster → fastest</code>',
+          '長い語（3音節以上）：<code>important → more important → most important</code>',
+          '不規則変化：<code>good→better→best / bad→worse→worst / many→more→most</code>',
+          '原級比較：<code>as + 形容詞/副詞の原級 + as</code>（同程度）',
+          '　　<code>He is as tall as his brother.</code>',
+          '比較級：<code>形容詞/副詞の比較級 + than</code>',
+          '　　<code>This method is more efficient than the old one.</code>',
+          '最上級：<code>the + 最上級 + in/of</code>',
+          '　　<code>She is the best candidate in the group.</code>',
+        ],
+        tips:['比較級の前に much/far/even/a lot を置くと「はるかに〜」の強調になる。'],
+        examples:[
+          ['This model is far more reliable than the previous version.','このモデルは以前のバージョンよりはるかに信頼性が高い。'],
+          ['Tokyo is one of the most populated cities in the world.','東京は世界で最も人口の多い都市の一つだ。'],
+        ]
+      },
+      { title:'重要な比較表現',
+        rules:[
+          '<code>the + 比較級, the + 比較級</code>　→　「〜すればするほど、ますます〜」',
+          '　　<code>The more you practice, the better you get.</code>',
+          '<code>as 〜 as possible</code>　→　「できるだけ〜」',
+          '<code>no longer</code>　→　「もはや〜ない」',
+          '<code>no more than / only</code>　→　「たった〜しか」',
+          '<code>not more than / at most</code>　→　「多くても〜」',
+        ],
+        tips:['「as soon as possible（ASAP）」はビジネスメールで頻出。TOEICでもよく出る。'],
+        examples:[
+          ['Please respond as soon as possible.','できるだけ早くご返答ください。'],
+          ['The longer you wait, the harder it becomes.','待てば待つほど、難しくなる。'],
+        ]
+      },
+    ]
+  },
+  {
+    id:'vocab', emoji:'📚', label:'語彙・語法',
+    summary:'意味・用法を間違えやすい語や、TOEICに頻出のビジネス語彙のポイント。',
+    sections:[
+      { title:'混同しやすい動詞ペア',
+        rules:[
+          '<code>rise（上がる：自動詞）</code> vs <code>raise（上げる：他動詞）</code>',
+          '　　<code>Prices rose.</code>（値段が上がった）/ <code>They raised prices.</code>（値段を上げた）',
+          '<code>lie（横たわる：自動詞）</code> vs <code>lay（置く：他動詞）</code>',
+          '<code>sit（座る：自動詞）</code> vs <code>seat（座らせる：他動詞）</code>',
+          '<code>affect（影響を与える：動詞）</code> vs <code>effect（影響：名詞）</code>',
+        ],
+        tips:['自動詞は目的語が不要、他動詞は目的語が必要。文の構造を確認すると判断できる。'],
+        examples:[
+          ['Sales figures rose sharply last quarter.','先四半期に売上数字が急上昇した。'],
+          ['The new policy will affect all employees.','新しい方針はすべての従業員に影響する。'],
+        ]
+      },
+      { title:'TOEIC頻出ビジネス語彙',
+        rules:[
+          '<code>accommodate</code>　→　収容する・対応する・宿泊させる',
+          '<code>expedite</code>　→　迅速に処理する',
+          '<code>implement</code>　→　実施する・導入する',
+          '<code>mandatory</code>　→　義務的な・必須の（= required / compulsory）',
+          '<code>tentative</code>　→　仮の・暫定的な',
+          '<code>substantial</code>　→　相当な・かなりの',
+          '<code>eligible</code>　→　資格のある・対象となる',
+          '<code>renowned</code>　→　著名な・名高い（= well-known / noted）',
+          '<code>consecutive</code>　→　連続した',
+          '<code>vicinity</code>　→　近辺・付近（= area / neighborhood）',
+        ],
+        tips:['TOEICでは同義語・言い換え問題が多い。類義語もセットで覚えよう。'],
+        examples:[
+          ['Attendance at the safety training is mandatory for all staff.','安全トレーニングへの出席は全スタッフに義務付けられている。'],
+          ['The schedule is tentative and subject to change.','スケジュールは暫定的で変更される可能性がある。'],
+        ]
+      },
+    ]
+  },
+];
+
+function renderGrammarGuide() {
+  const cards = GRAMMAR_DATA.map(g => `
+    <div class="grammar-card" id="gc-${g.id}">
+      <div class="grammar-header" onclick="toggleGrammar('${g.id}')">
+        <span class="grammar-emoji">${g.emoji}</span>
+        <div style="flex:1">
+          <div class="grammar-title">${g.label}</div>
+          <div class="grammar-summary">${g.summary}</div>
+        </div>
+        <span class="grammar-chevron">›</span>
+      </div>
+      <div class="grammar-body">
+        ${g.sections.map(sec => `
+          <div class="grammar-section">
+            <div class="grammar-section-title">${sec.title}</div>
+            ${sec.rules.map(r => `<div class="rule-box">${r}</div>`).join('')}
+            ${sec.tips.filter(t=>t).map(t => `<div class="tip-box">💡 ${t}</div>`).join('')}
+            ${sec.examples.length ? `
+              <table class="example-table">
+                ${sec.examples.map(([en,ja]) => `
+                  <tr><td>${escHtml(en)}</td><td>${escHtml(ja)}</td></tr>`).join('')}
+              </table>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  return `<div class="view">
+    <div style="font-size:1.1rem;font-weight:800;margin-bottom:16px">📖 文法解説</div>
+    <div style="font-size:.85rem;color:var(--muted);margin-bottom:20px">各文法をタップして詳細を確認できます</div>
+    ${cards}
+  </div>`;
+}
+
+function toggleGrammar(id) {
+  const card = document.getElementById('gc-' + id);
+  if (card) card.classList.toggle('open');
+}
+
 function renderSettings() {
   const uid     = getCurUid();
   const studied = Object.keys(progress).length;
