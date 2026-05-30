@@ -467,6 +467,12 @@
     .example-table td { padding: 7px 8px; vertical-align: top; }
     .example-table td:first-child { color: var(--text); font-weight: 500; width: 52%; }
     .example-table td:last-child { color: var(--muted); }
+    .grammar-link {
+      color: var(--blue); text-decoration: underline dotted;
+      cursor: pointer; font-weight: 600; background: none; border: none;
+      padding: 0; font-size: inherit; font-family: inherit; display: inline;
+    }
+    .grammar-link:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -1098,7 +1104,7 @@ function handleTimeout(qid) {
         <span class="level-chip lv${Math.min(p.level,7)}" style="margin-left:6px">${LEVEL_LABELS[Math.min(p.level,7)]}</span>
       </div>
       ${q.translation ? `<div class="detail-section"><div class="detail-label">訳</div><div class="detail-text">${escHtml(q.translation)}</div></div>` : ''}
-      ${q.explanation ? `<div class="detail-section"><div class="detail-label">解説</div><div class="detail-text">${escHtml(q.explanation)}</div></div>` : ''}
+      ${q.explanation ? `<div class="detail-section"><div class="detail-label">解説</div><div class="detail-text">${linkifyExplanation(q.explanation)}</div></div>` : ''}
       ${q.vocabulary  ? `<div class="detail-section"><div class="detail-label">語彙</div><div class="detail-text">${escHtml(q.vocabulary)}</div></div>`  : ''}
     </div>
     <button class="next-btn" onclick="nextQuestion()">
@@ -1175,7 +1181,7 @@ function selectAnswer(selected, qid) {
         <span class="level-chip lv${Math.min(p.level,7)}" style="margin-left:6px">${LEVEL_LABELS[Math.min(p.level,7)]}</span>
       </div>
       ${q.translation  ? `<div class="detail-section"><div class="detail-label">訳</div><div class="detail-text">${escHtml(q.translation)}</div></div>` : ''}
-      ${q.explanation  ? `<div class="detail-section"><div class="detail-label">解説</div><div class="detail-text">${escHtml(q.explanation)}</div></div>` : ''}
+      ${q.explanation  ? `<div class="detail-section"><div class="detail-label">解説</div><div class="detail-text">${linkifyExplanation(q.explanation)}</div></div>` : ''}
       ${q.vocabulary   ? `<div class="detail-section"><div class="detail-label">語彙</div><div class="detail-text">${escHtml(q.vocabulary)}</div></div>` : ''}
     </div>
     <button class="next-btn" onclick="nextQuestion()">
@@ -1380,6 +1386,55 @@ function showView(name) {
 // ═══════════════════════════════════════════════════════════════
 //  ビュー：文法解説
 // ═══════════════════════════════════════════════════════════════
+// キーワード → 文法カテゴリのマッピング（長い語を先に置く）
+const GRAMMAR_KEYWORDS = [
+  { kw:'仮定法過去完了', id:'tense'   },
+  { kw:'関係代名詞',     id:'rel'     },
+  { kw:'仮定法過去',     id:'tense'   },
+  { kw:'関係副詞',       id:'rel'     },
+  { kw:'現在完了',       id:'tense'   },
+  { kw:'過去完了',       id:'tense'   },
+  { kw:'完了形',         id:'tense'   },
+  { kw:'未来形',         id:'tense'   },
+  { kw:'比較級',         id:'comp'    },
+  { kw:'最上級',         id:'comp'    },
+  { kw:'受動態',         id:'passive' },
+  { kw:'助動詞',         id:'modal'   },
+  { kw:'動名詞',         id:'infger'  },
+  { kw:'不定詞',         id:'infger'  },
+  { kw:'接続詞',         id:'conj'    },
+  { kw:'前置詞',         id:'prep'    },
+  { kw:'受け身',         id:'passive' },
+  { kw:'関係詞',         id:'rel'     },
+  { kw:'仮定法',         id:'tense'   },
+  { kw:'時制',           id:'tense'   },
+  { kw:'比較',           id:'comp'    },
+];
+
+const _GRAMMAR_KW_REGEX = new RegExp(
+  GRAMMAR_KEYWORDS.map(({kw}) => kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g'
+);
+const _GRAMMAR_KW_MAP = Object.fromEntries(GRAMMAR_KEYWORDS.map(({kw,id}) => [kw, id]));
+
+function linkifyExplanation(text) {
+  if (!text) return '';
+  // escHtml first, then replace keywords with buttons (keywords are pure Japanese, no HTML chars)
+  return escHtml(text).replace(_GRAMMAR_KW_REGEX, m =>
+    `<button class="grammar-link" onclick="goToGrammar('${_GRAMMAR_KW_MAP[m]}')">${m}</button>`
+  );
+}
+
+function goToGrammar(id) {
+  showView('grammar');
+  setTimeout(() => {
+    const card = document.getElementById('gc-' + id);
+    if (card) {
+      card.classList.add('open');
+      card.scrollIntoView({ behavior:'smooth', block:'start' });
+    }
+  }, 80);
+}
+
 const GRAMMAR_DATA = [
   {
     id:'tense', emoji:'⏰', label:'時制',
