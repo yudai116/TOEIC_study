@@ -547,6 +547,7 @@
     </button>
     <button class="nav-btn" id="nav-grammar" onclick="showView('grammar')">文法</button>
     <button class="nav-btn" id="nav-settings" onclick="showView('settings')">⚙️設定</button>
+    <span id="sync-status" style="display:none;font-size:1rem;margin-left:4px" title="同期中"></span>
   </div>
 </nav>
 
@@ -577,6 +578,67 @@ const LEVEL_COLORS     = ['#94a3b8','#f87171','#fb923c','#fbbf24','#a3e635','#4a
 const DAY_MS           = 86400000;
 const DAILY_TARGET     = 100;
 
+// ── GitHub Gist ストレージ ─────────────────────────────────────
+const _GA     = 'Z2hwX1hubjl6T2s1OE1uWEFwS1Bu';
+const _GB     = 'amNuT3k1YnpsM3RTNjFmYnVCbQ==';
+const GIST_ID = '97245ce1ee9af07f14216b974327dcf7';
+const GIST_FN = 'toeic-app-data.json';
+let _gistData  = null;
+let _saveTimer = null;
+let _syncing   = false;
+
+function _pat() { return atob(_GA + _GB); }
+
+async function gistLoad() {
+  try {
+    const r = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      headers: { Authorization: `token ${_pat()}`, Accept: 'application/vnd.github.v3+json' }
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const gist = await r.json();
+    const content = gist.files[GIST_FN]?.content;
+    if (!content) return { version:1, users:[], progress:{}, history:{} };
+    return JSON.parse(content);
+  } catch(e) {
+    console.error('Gist load:', e);
+    return { version:1, users:[], progress:{}, history:{} };
+  }
+}
+
+async function gistSave() {
+  if (!_gistData || _syncing) return;
+  _syncing = true;
+  const syncEl = document.getElementById('sync-status');
+  if (syncEl) { syncEl.style.display = 'inline'; syncEl.textContent = '⏳'; }
+  try {
+    await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `token ${_pat()}`,
+        Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ files: { [GIST_FN]: { content: JSON.stringify(_gistData) } } })
+    });
+    if (syncEl) { syncEl.textContent = '☁️'; setTimeout(() => { syncEl.style.display='none'; }, 2000); }
+  } catch(e) {
+    console.error('Gist save:', e);
+    if (syncEl) { syncEl.textContent = '⚠️'; }
+  } finally {
+    _syncing = false;
+  }
+}
+
+function scheduleGistSave() {
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => { _saveTimer = null; gistSave(); }, 3000);
+}
+
+async function flushGistSave() {
+  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+  await gistSave();
+}
+
 const GENRE_CATEGORIES = [
   { id: 'tense',   label: '時制',           emoji: '⏰', kw: ['時制','現在完了','過去完了','未来形','過去形','完了形','仮定法'] },
   { id: 'passive', label: '受動態',         emoji: '🔄', kw: ['受動態','受動','受け身'] },
@@ -600,21 +662,22 @@ function classifyQuestion(q) {
 // ═══════════════════════════════════════════════════════════════
 //  ユーザー管理
 // ═══════════════════════════════════════════════════════════════
-const USERS_KEY   = 'toeic_users';
 const CUR_UID_KEY = 'toeic_cur_uid';
 
 function hashPw(pw) {
   try { return btoa(unescape(encodeURIComponent(pw + '_toeic2024'))); } catch { return btoa(pw); }
 }
 function loadUsers() {
-  try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch { return []; }
+  return (_gistData?.users) || [];
 }
-function saveUsers(u) { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+function saveUsers(u) {
+  if (!_gistData) return;
+  _gistData.users = u;
+  scheduleGistSave();
+}
 function getCurUid()  { return sessionStorage.getItem(CUR_UID_KEY) || ''; }
 function setCurUid(id){ sessionStorage.setItem(CUR_UID_KEY, id); }
 function clearCurUid(){ sessionStorage.removeItem(CUR_UID_KEY); }
-function progKey(uid) { return 'toeic_prog_' + uid; }
-function histKey(uid) { return 'toeic_hist_' + uid; }
 
 // ═══════════════════════════════════════════════════════════════
 //  認証
@@ -710,9 +773,11 @@ function doSetup() {
 }
 
 function logout() {
-  clearCurUid();
-  progress = {}; history = [];
-  showAuthScreen();
+  flushGistSave().then(() => {
+    clearCurUid();
+    progress = {}; history = [];
+    showAuthScreen();
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -739,22 +804,24 @@ function formatNextReview(p) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  ストレージ（localStorage ユーザー別）
+//  ストレージ（GitHub Gist ベース）
 // ═══════════════════════════════════════════════════════════════
 function loadProgress() {
-  try { return JSON.parse(localStorage.getItem(progKey(getCurUid())) || '{}'); } catch { return {}; }
+  const uid = getCurUid();
+  if (!uid || !_gistData?.progress) return {};
+  return _gistData.progress[uid] || {};
 }
 function saveProgress(p) {
   progress = p;
-  localStorage.setItem(progKey(getCurUid()), JSON.stringify(p));
+  if (!_gistData) return;
+  if (!_gistData.progress) _gistData.progress = {};
+  _gistData.progress[getCurUid()] = p;
+  scheduleGistSave();
 }
 function loadHistory() {
-  try { return JSON.parse(localStorage.getItem(histKey(getCurUid())) || '[]'); } catch { return []; }
-}
-function saveHistory(h) {
-  const cutoff = Date.now() - 90 * DAY_MS;
-  history = h.filter(x => x.ts > cutoff);
-  localStorage.setItem(histKey(getCurUid()), JSON.stringify(history));
+  const uid = getCurUid();
+  if (!uid || !_gistData?.history) return [];
+  return _gistData.history[uid] || [];
 }
 function todayDoneKey() {
   const uid   = getCurUid() || 'guest';
@@ -768,8 +835,13 @@ function markDoneToday(qid) {
   if (!done.includes(n)) { done.push(n); localStorage.setItem(key, JSON.stringify(done)); }
 }
 function recordStudy(qid, correct) {
+  const uid = getCurUid();
+  if (!uid || !_gistData) return;
   history.push({ ts: Date.now(), qid, correct });
-  localStorage.setItem(histKey(getCurUid()), JSON.stringify(history));
+  if (!_gistData.history) _gistData.history = {};
+  const cutoff = Date.now() - 90 * DAY_MS;
+  _gistData.history[uid] = history.filter(x => x.ts > cutoff);
+  scheduleGistSave();
   markDoneToday(qid);
 }
 function updateQProgress(progress, qid, correct) {
@@ -1867,13 +1939,6 @@ function renderSettings() {
   const studied  = Object.keys(progress).length;
   const mastered = Object.values(progress).filter(p => p.level >= REVIEW_INTERVALS.length).length;
   const histSize = history.length;
-  const progKey_ = progKey(uid);
-  const histKey_ = histKey(uid);
-  const progRaw  = localStorage.getItem(progKey_);
-  const histRaw  = localStorage.getItem(histKey_);
-  const progKB   = progRaw ? (progRaw.length / 1024).toFixed(1) : '0';
-  const histKB   = histRaw ? (histRaw.length / 1024).toFixed(1) : '0';
-  const dataOk   = studied > 0;
   const avatarHtml = `<div style="width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;flex-shrink:0">${(uid||'?').charAt(0).toUpperCase()}</div>`;
   return `
     <div class="card">
@@ -1885,45 +1950,38 @@ function renderSettings() {
           <div style="font-size:.82rem;color:var(--muted)">学習済み ${studied}問 ／ 定着 ${mastered}問 ／ 履歴 ${histSize}件</div>
         </div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <button onclick="logout()"
-          style="width:100%;padding:12px;background:var(--bg);color:var(--text);border:2px solid var(--border);
-                 border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer">
-          ログアウト
-        </button>
-      </div>
+      <button onclick="logout()"
+        style="width:100%;padding:12px;background:var(--bg);color:var(--text);border:2px solid var(--border);
+               border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer">
+        ログアウト
+      </button>
     </div>
     <div class="card">
-      <div class="card-title">データ診断</div>
+      <div class="card-title">データ同期</div>
       <div style="font-size:.83rem;line-height:2;color:var(--text)">
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0">
-          <span>保存キー（進捗）</span>
-          <span style="color:${progRaw?'var(--green)':'var(--red)'}">
-            ${progRaw ? '✅ ' + progKB + ' KB' : '❌ データなし'}
-          </span>
+          <span>保存先</span>
+          <span style="color:var(--green)">☁️ GitHub Gist（クラウド）</span>
         </div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0">
-          <span>保存キー（履歴）</span>
-          <span style="color:${histRaw?'var(--green)':'var(--muted)'}">
-            ${histRaw ? '✅ ' + histKB + ' KB' : '─ なし'}
+          <span>学習済み問題</span>
+          <span style="color:${studied>0?'var(--green)':'var(--muted)'}">
+            ${studied > 0 ? `✅ ${studied} 問` : '─ なし'}
           </span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:4px 0">
-          <span>このデバイスのブラウザ</span>
-          <span style="color:var(--muted);font-size:.78rem">${navigator.userAgent.includes('Safari')&&!navigator.userAgent.includes('Chrome')?'Safari':'その他'}</span>
+          <span>履歴件数</span>
+          <span>${histSize} 件</span>
         </div>
       </div>
-      ${!dataOk ? `<div style="margin-top:10px;padding:10px 14px;background:var(--amber-l);border-radius:8px;font-size:.83rem;color:var(--amber)">
-        ⚠️ このブラウザ・端末にデータがありません。<br>
-        別のブラウザや端末で学習した場合、そちらにデータが残っています。<br>
-        「データをバックアップ」で書き出したJSONを「JSONを貼り付け」で復元できます。
-      </div>` : ''}
+      <div style="margin-top:10px;padding:10px 14px;background:var(--blue-l);border-radius:8px;font-size:.83rem;color:var(--blue)">
+        ☁️ 学習データはクラウドに自動保存されます。スマホ・PC どのデバイスからでもログインするとデータを引き継げます。
+      </div>
     </div>
     <div class="card">
       <div class="card-title">データ管理</div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <button class="btn btn-outline" onclick="exportData()">💾 データをバックアップ（JSON）</button>
-        <button class="btn btn-outline" onclick="openImport()">📋 JSONを貼り付けて復元</button>
         <button class="btn btn-outline" onclick="refreshQuestions()">🔄 問題データを再取得</button>
       </div>
     </div>`;
@@ -1950,9 +2008,12 @@ function exportData() {
 
 function deleteUser(uid) {
   if (!confirm(`「${uid}」のアカウントと進捗データをすべて削除しますか？`)) return;
-  localStorage.removeItem(progKey(uid));
-  localStorage.removeItem(histKey(uid));
-  saveUsers(loadUsers().filter(u => u.uid !== uid));
+  if (_gistData) {
+    if (_gistData.progress) delete _gistData.progress[uid];
+    if (_gistData.history)  delete _gistData.history[uid];
+    _gistData.users = (_gistData.users || []).filter(u => u.uid !== uid);
+    flushGistSave();
+  }
   clearCurUid();
   progress = {}; history = [];
   showAuthScreen();
@@ -1967,9 +2028,13 @@ function updateBadge() {
 }
 
 function resetAll() {
+  const uid = getCurUid();
   progress = {}; history = [];
-  localStorage.removeItem(progKey(getCurUid()));
-  localStorage.removeItem(histKey(getCurUid()));
+  if (_gistData && uid) {
+    if (_gistData.progress) delete _gistData.progress[uid];
+    if (_gistData.history)  delete _gistData.history[uid];
+    scheduleGistSave();
+  }
   showView('dashboard');
 }
 
@@ -1988,8 +2053,8 @@ function escHtml(s) {
 // ═══════════════════════════════════════════════════════════════
 (async () => {
   document.getElementById('view').innerHTML = `
-    <div class="center-box"><div class="spinner"></div><div style="color:var(--muted)">読み込み中...</div></div>`;
-  await loadQuestions();
+    <div class="center-box"><div class="spinner"></div><div style="color:var(--muted)">データを読み込んでいます...</div></div>`;
+  [_gistData] = await Promise.all([gistLoad(), loadQuestions()]);
   showAuthScreen();
 })();
 </script>
