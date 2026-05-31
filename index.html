@@ -483,21 +483,34 @@
     <div class="auth-logo">📚 TOEIC Grammar</div>
     <div class="auth-tagline">毎日100問で文法力を定着させよう</div>
 
-    <!-- ログインパネル (アカウント存在時) -->
+    <!-- Step1: ユーザー選択 -->
     <div id="auth-panel-login" style="display:none">
-      <form onsubmit="event.preventDefault();doLogin()" id="auth-login-form">
-        <div id="auth-ulist" class="auth-ulist" style="margin-bottom:12px"></div>
-        <input type="text" id="auth-uid-inp" class="auth-input" placeholder="ユーザーID"
-          autocomplete="username" maxlength="20">
+      <div class="auth-sec-title">アカウントを選択</div>
+      <div id="auth-ulist" class="auth-ulist"></div>
+      <div style="text-align:center;margin-top:16px">
+        <button type="button" onclick="showSetupPanel()"
+          style="background:none;border:none;color:var(--blue);font-size:.83rem;cursor:pointer;text-decoration:underline">
+          ＋ アカウントを追加
+        </button>
+      </div>
+    </div>
+
+    <!-- Step2: パスワード入力 -->
+    <div id="auth-panel-password" style="display:none">
+      <div class="auth-sec-title">パスワードを入力</div>
+      <form onsubmit="event.preventDefault();doLogin()">
+        <input type="text" id="auth-uid-inp" class="auth-input"
+          autocomplete="username" readonly
+          style="background:var(--bg);color:var(--muted);cursor:default;font-weight:700">
         <input type="password" id="auth-pw-inp" class="auth-input" placeholder="パスワード"
           autocomplete="current-password" maxlength="30">
         <div id="auth-err" style="color:#dc2626;font-size:.82rem;margin-bottom:8px;display:none"></div>
         <button type="submit" class="auth-btn" id="auth-login-btn">ログイン</button>
       </form>
-      <div style="text-align:center;margin-top:16px">
-        <button type="button" onclick="showSetupPanel()"
-          style="background:none;border:none;color:var(--blue);font-size:.83rem;cursor:pointer;text-decoration:underline">
-          ＋ アカウントを追加
+      <div style="text-align:center;margin-top:12px">
+        <button type="button" onclick="showLoginPanel()"
+          style="background:none;border:none;color:var(--muted);font-size:.82rem;cursor:pointer">
+          ← ユーザー選択に戻る
         </button>
       </div>
     </div>
@@ -618,6 +631,7 @@ function hideAuthScreen() { document.getElementById('auth-screen').style.display
 
 function showLoginPanel() {
   document.getElementById('auth-panel-login').style.display = 'block';
+  document.getElementById('auth-panel-password').style.display = 'none';
   document.getElementById('auth-panel-setup').style.display = 'none';
   _authUid = null;
   const users = loadUsers();
@@ -630,13 +644,11 @@ function showLoginPanel() {
       <span style="color:var(--muted);font-size:1.1rem">›</span>
     </button>
   `).join('');
-  document.getElementById('auth-uid-inp').value = '';
-  document.getElementById('auth-pw-inp').value = '';
-  document.getElementById('auth-err').style.display = 'none';
 }
 
 function showSetupPanel() {
   document.getElementById('auth-panel-login').style.display = 'none';
+  document.getElementById('auth-panel-password').style.display = 'none';
   document.getElementById('auth-panel-setup').style.display = 'block';
   document.getElementById('setup-back-wrap').style.display = loadUsers().length > 0 ? 'block' : 'none';
   document.getElementById('setup-uid').value = '';
@@ -646,12 +658,13 @@ function showSetupPanel() {
 }
 
 function selectAuthUser(uid) {
-  document.querySelectorAll('.auth-ubtn').forEach(b => b.style.borderColor = '');
-  const btn = document.getElementById('auth-ubtn-' + uid);
-  if (btn) btn.style.borderColor = 'var(--blue)';
+  _authUid = uid;
+  document.getElementById('auth-panel-login').style.display = 'none';
+  document.getElementById('auth-panel-password').style.display = 'block';
   document.getElementById('auth-uid-inp').value = uid;
+  document.getElementById('auth-pw-inp').value = '';
   document.getElementById('auth-err').style.display = 'none';
-  setTimeout(() => document.getElementById('auth-pw-inp').focus(), 50);
+  setTimeout(() => document.getElementById('auth-pw-inp').focus(), 80);
 }
 
 function doLogin() {
