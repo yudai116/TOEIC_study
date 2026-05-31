@@ -1863,9 +1863,17 @@ function toggleGrammar(id) {
 }
 
 function renderSettings() {
-  const uid     = getCurUid();
-  const studied = Object.keys(progress).length;
-  const mastered= Object.values(progress).filter(p => p.level >= REVIEW_INTERVALS.length).length;
+  const uid      = getCurUid();
+  const studied  = Object.keys(progress).length;
+  const mastered = Object.values(progress).filter(p => p.level >= REVIEW_INTERVALS.length).length;
+  const histSize = history.length;
+  const progKey_ = progKey(uid);
+  const histKey_ = histKey(uid);
+  const progRaw  = localStorage.getItem(progKey_);
+  const histRaw  = localStorage.getItem(histKey_);
+  const progKB   = progRaw ? (progRaw.length / 1024).toFixed(1) : '0';
+  const histKB   = histRaw ? (histRaw.length / 1024).toFixed(1) : '0';
+  const dataOk   = studied > 0;
   const avatarHtml = `<div style="width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;flex-shrink:0">${(uid||'?').charAt(0).toUpperCase()}</div>`;
   return `
     <div class="card">
@@ -1874,7 +1882,7 @@ function renderSettings() {
         ${avatarHtml}
         <div style="flex:1">
           <div style="font-weight:800;font-size:1.1rem">${escHtml(uid || '不明')}</div>
-          <div style="font-size:.82rem;color:var(--muted)">学習済み ${studied}問 ／ 定着 ${mastered}問</div>
+          <div style="font-size:.82rem;color:var(--muted)">学習済み ${studied}問 ／ 定着 ${mastered}問 ／ 履歴 ${histSize}件</div>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px">
@@ -1886,12 +1894,58 @@ function renderSettings() {
       </div>
     </div>
     <div class="card">
+      <div class="card-title">データ診断</div>
+      <div style="font-size:.83rem;line-height:2;color:var(--text)">
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0">
+          <span>保存キー（進捗）</span>
+          <span style="color:${progRaw?'var(--green)':'var(--red)'}">
+            ${progRaw ? '✅ ' + progKB + ' KB' : '❌ データなし'}
+          </span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0">
+          <span>保存キー（履歴）</span>
+          <span style="color:${histRaw?'var(--green)':'var(--muted)'}">
+            ${histRaw ? '✅ ' + histKB + ' KB' : '─ なし'}
+          </span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0">
+          <span>このデバイスのブラウザ</span>
+          <span style="color:var(--muted);font-size:.78rem">${navigator.userAgent.includes('Safari')&&!navigator.userAgent.includes('Chrome')?'Safari':'その他'}</span>
+        </div>
+      </div>
+      ${!dataOk ? `<div style="margin-top:10px;padding:10px 14px;background:var(--amber-l);border-radius:8px;font-size:.83rem;color:var(--amber)">
+        ⚠️ このブラウザ・端末にデータがありません。<br>
+        別のブラウザや端末で学習した場合、そちらにデータが残っています。<br>
+        「データをバックアップ」で書き出したJSONを「JSONを貼り付け」で復元できます。
+      </div>` : ''}
+    </div>
+    <div class="card">
       <div class="card-title">データ管理</div>
       <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-outline" onclick="exportData()">💾 データをバックアップ（JSON）</button>
+        <button class="btn btn-outline" onclick="openImport()">📋 JSONを貼り付けて復元</button>
         <button class="btn btn-outline" onclick="refreshQuestions()">🔄 問題データを再取得</button>
-        <button class="btn btn-outline" onclick="openImport()">📋 JSONを直接貼り付け</button>
       </div>
     </div>`;
+}
+
+function exportData() {
+  const uid = getCurUid();
+  const data = {
+    version: 1,
+    uid,
+    exportedAt: new Date().toISOString(),
+    progress: progress,
+    history: history,
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `toeic_backup_${uid}_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function deleteUser(uid) {
