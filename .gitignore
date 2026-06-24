@@ -2,3 +2,4 @@ scraper.log
 .scraper_progress.json
 __pycache__/
 *.pyc
+.github/
