@@ -2,3 +2,5 @@ scraper.log
 .scraper_progress.json
 __pycache__/
 *.pyc
+.github/
+supabase_migrate_data.sql
