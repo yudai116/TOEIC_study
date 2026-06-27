@@ -643,8 +643,8 @@ const DAILY_TARGET     = 100;
 // ── Supabase ストレージ ──────────────────────────────────────────
 // SB_KEY は公開フロントエンド用の anon (publishable) キー。RLSで保護され、
 // ソースに含めて公開しても安全な設計（GitHubトークンのような秘密鍵ではない）。
-const SB_URL = 'INJECT_SUPABASE_URL';
-const SB_KEY = 'INJECT_SUPABASE_ANON_KEY';
+const SB_URL = 'https://vqrvdhvrrpdjwkhwhugb.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxcnZkaHZycnBkandraHdodWdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NjE2MzUsImV4cCI6MjA5ODEzNzYzNX0.SYPG4ElhxAbIcCVHev7KvCjYPac_MevW5mL6tinwJbI';
 // 末尾の "/" や "/rest/v1" を取り除いた正規のベースURL（貼り間違い対策）
 const SB_BASE = (typeof SB_URL === 'string' ? SB_URL : '').replace(/\/+$/, '').replace(/\/rest\/v1$/, '');
 let _gistData    = null;   // 読み込んだ全データのメモリキャッシュ {users,progress,history}
