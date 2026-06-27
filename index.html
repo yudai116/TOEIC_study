@@ -534,6 +534,67 @@
       padding: 0; font-size: inherit; font-family: inherit; display: inline;
     }
     .grammar-link:hover { text-decoration: underline; }
+
+    /* ── ランキング ── */
+    .rank-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
+    .rank-tab {
+      flex:1; min-width:80px; padding:8px 6px; border:1px solid var(--border);
+      background:var(--card); color:var(--muted); border-radius:10px;
+      font-size:.82rem; font-weight:600; cursor:pointer; white-space:nowrap;
+    }
+    .rank-tab:hover { background:var(--bg); }
+    .rank-tab.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+
+    .podium {
+      display:flex; justify-content:center; align-items:flex-end; gap:10px;
+      margin:8px 0 18px; min-height:140px;
+    }
+    .podium-item {
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      flex:1; max-width:110px;
+    }
+    .podium-1 { order:2; } .podium-2 { order:1; } .podium-3 { order:3; }
+    .podium-medal { font-size:1.6rem; }
+    .podium-avatar {
+      width:52px; height:52px; border-radius:50%; color:#fff;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.4rem; font-weight:700; box-shadow:0 2px 6px rgba(0,0,0,.15);
+    }
+    .podium-1 .podium-avatar { width:64px; height:64px; font-size:1.7rem; }
+    .podium-name { font-weight:700; font-size:.85rem; text-align:center; word-break:break-all; }
+    .podium-name.is-me { color:var(--blue); }
+    .podium-val { font-size:.95rem; font-weight:800; color:var(--blue); }
+    .podium-1 .podium-val { font-size:1.1rem; }
+
+    .rank-me-banner {
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      background:var(--blue-l); color:var(--blue); border-radius:12px;
+      padding:12px 16px; margin-bottom:16px; font-weight:600;
+    }
+    .rank-me-banner strong { font-size:1.15rem; }
+    .rank-me-banner .rank-me-val { margin-left:auto; font-weight:800; }
+    .rank-me-banner.rank-me-muted { background:var(--bg); color:var(--muted); font-weight:500; }
+
+    .rank-list { display:flex; flex-direction:column; gap:6px; }
+    .rank-row {
+      display:flex; align-items:center; gap:12px; padding:10px 12px;
+      border-radius:10px; background:var(--bg);
+    }
+    .rank-row.is-me { background:var(--blue-l); outline:1.5px solid var(--blue); }
+    .rank-pos {
+      width:30px; text-align:center; font-weight:700; font-size:1rem;
+      color:var(--muted); flex-shrink:0;
+    }
+    .rank-avatar {
+      width:34px; height:34px; border-radius:50%; color:#fff; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; font-weight:700;
+    }
+    .rank-name { flex:1; font-weight:600; word-break:break-all; }
+    .rank-youtag {
+      font-size:.7rem; background:var(--blue); color:#fff;
+      padding:1px 6px; border-radius:6px; margin-left:4px; font-weight:700;
+    }
+    .rank-val { font-weight:800; color:var(--blue); flex-shrink:0; }
   </style>
 </head>
 <body>
@@ -1502,6 +1563,145 @@ function renderLevelBarsById(id, stats) {
 // ═══════════════════════════════════════════════════════════════
 //  ナビゲーション
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  ビュー：ランキング
+// ═══════════════════════════════════════════════════════════════
+let _rankTab = 'mastered';
+const RANK_TABS = [
+  { id:'mastered', label:'🎯 定着数', unit:'問', desc:'完全に定着した問題数' },
+  { id:'studied',  label:'📚 学習量', unit:'問', desc:'学習した問題数' },
+  { id:'correct',  label:'✅ 正解数', unit:'問', desc:'これまでの累計正解数' },
+  { id:'accuracy', label:'🎓 正解率', unit:'%',  desc:'正解率（20問以上解答した人が対象）' },
+];
+
+function _avatarColor(uid) {
+  let h = 0;
+  for (let i = 0; i < uid.length; i++) h = uid.charCodeAt(i) + ((h << 5) - h);
+  return `hsl(${Math.abs(h) % 360},65%,50%)`;
+}
+
+function computeRankStats() {
+  const users = (_gistData?.users) || [];
+  const allProg = _gistData?.progress || {};
+  const maxLv = REVIEW_INTERVALS.length;
+  return users.map(u => {
+    const uid = u.uid;
+    const prog = allProg[uid] || {};
+    let mastered = 0, studied = 0, correct = 0, attempts = 0;
+    Object.values(prog).forEach(p => {
+      const lv = p.level || 0;
+      if (lv >= maxLv) mastered++;
+      if (lv > 0)      studied++;
+      correct  += (p.correctCount || 0);
+      attempts += (p.correctCount || 0) + (p.wrongCount || 0);
+    });
+    const accuracy = attempts >= 20 ? Math.round(correct / attempts * 100) : null;
+    return { uid, mastered, studied, correct, attempts, accuracy };
+  });
+}
+
+function _rankSorted(stats, tab) {
+  const rows = (tab === 'accuracy') ? stats.filter(s => s.accuracy !== null) : stats.slice();
+  rows.sort((a, b) => {
+    const av = a[tab], bv = b[tab];
+    if (bv !== av) return bv - av;
+    return b.correct - a.correct; // 同点は累計正解数で
+  });
+  return rows;
+}
+
+function renderRanking() {
+  const me = getCurUid();
+  const stats = computeRankStats();
+  const tab = _rankTab;
+  const meta = RANK_TABS.find(t => t.id === tab);
+  const rows = _rankSorted(stats, tab);
+
+  const tabBtns = RANK_TABS.map(t => `
+    <button class="rank-tab ${t.id===tab?'active':''}" onclick="setRankTab('${t.id}')">${t.label}</button>
+  `).join('');
+
+  const medal = ['🥇','🥈','🥉'];
+  const fmt = (r) => tab === 'accuracy'
+    ? (r.accuracy===null ? '—' : r.accuracy + meta.unit)
+    : (r[tab] + meta.unit);
+
+  // 表彰台（上位3名）
+  const top3 = rows.slice(0, 3);
+  const podium = top3.length ? `
+    <div class="podium">
+      ${top3.map((r,i) => `
+        <div class="podium-item podium-${i+1}">
+          <div class="podium-medal">${medal[i]}</div>
+          <div class="podium-avatar" style="background:${_avatarColor(r.uid)}">${escHtml(r.uid.charAt(0).toUpperCase())}</div>
+          <div class="podium-name ${r.uid===me?'is-me':''}">${escHtml(r.uid)}</div>
+          <div class="podium-val">${fmt(r)}</div>
+        </div>
+      `).join('')}
+    </div>` : '';
+
+  // 自分の順位バナー
+  const myIdx = rows.findIndex(r => r.uid === me);
+  let myBanner = '';
+  if (me) {
+    if (myIdx >= 0) {
+      const r = rows[myIdx];
+      myBanner = `
+        <div class="rank-me-banner">
+          <span>あなたの順位</span>
+          <strong>${myIdx+1}位 / ${rows.length}人</strong>
+          <span class="rank-me-val">${fmt(r)}</span>
+        </div>`;
+    } else if (tab === 'accuracy') {
+      myBanner = `<div class="rank-me-banner rank-me-muted">正解率ランキングは20問以上の解答が必要です</div>`;
+    }
+  }
+
+  // 全員リスト
+  const list = rows.length ? rows.map((r, i) => `
+    <div class="rank-row ${r.uid===me?'is-me':''}">
+      <div class="rank-pos">${i<3?medal[i]:(i+1)}</div>
+      <div class="rank-avatar" style="background:${_avatarColor(r.uid)}">${escHtml(r.uid.charAt(0).toUpperCase())}</div>
+      <div class="rank-name">${escHtml(r.uid)}${r.uid===me?' <span class="rank-youtag">あなた</span>':''}</div>
+      <div class="rank-val">${fmt(r)}</div>
+    </div>
+  `).join('') : `<div style="text-align:center;color:var(--muted);padding:32px">該当するユーザーがいません</div>`;
+
+  return `
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <h2 style="margin:0">🏆 ランキング</h2>
+        <button class="btn btn-outline" onclick="refreshRankingData(true)" title="最新データに更新" style="font-size:.85rem;padding:6px 12px">🔄 更新</button>
+      </div>
+      <p style="color:var(--muted);margin:6px 0 14px">${meta.desc}</p>
+      <div class="rank-tabs">${tabBtns}</div>
+      ${podium}
+      ${myBanner}
+      <div class="rank-list">${list}</div>
+    </div>`;
+}
+
+function setRankTab(id) {
+  _rankTab = id;
+  document.getElementById('view').innerHTML = renderRanking();
+}
+
+async function refreshRankingData(showSpin) {
+  try {
+    if (_saveTimer) await flushGistSave();
+    const fresh = await gistLoad();
+    if (fresh) _gistData = fresh;
+    const me = getCurUid();
+    if (me && _gistData) {
+      progress = (_gistData.progress && _gistData.progress[me]) || progress;
+      history  = (_gistData.history  && _gistData.history[me])  || history;
+    }
+    if (document.getElementById('nav-rank')?.classList.contains('active')) {
+      document.getElementById('view').innerHTML = renderRanking();
+    }
+  } catch (e) { console.error('ranking refresh:', e); }
+}
+
 function showView(name) {
   clearTimer();
   const view = document.getElementById('view');
