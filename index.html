@@ -645,19 +645,21 @@ const DAILY_TARGET     = 100;
 // ソースに含めて公開しても安全な設計（GitHubトークンのような秘密鍵ではない）。
 const SB_URL = 'INJECT_SUPABASE_URL';
 const SB_KEY = 'INJECT_SUPABASE_ANON_KEY';
+// 末尾の "/" や "/rest/v1" を取り除いた正規のベースURL（貼り間違い対策）
+const SB_BASE = (typeof SB_URL === 'string' ? SB_URL : '').replace(/\/+$/, '').replace(/\/rest\/v1$/, '');
 let _gistData    = null;   // 読み込んだ全データのメモリキャッシュ {users,progress,history}
 let _saveTimer   = null;
 let _syncing     = false;
 const _dirtyQ    = new Set();   // 未保存の進捗 qid
 let _pendingHist = [];          // 未保存の履歴行
 
-function _sbReady() { return typeof SB_URL === 'string' && SB_URL.startsWith('http'); }
+function _sbReady() { return SB_BASE.startsWith('http'); }
 function _sbHeaders(extra) {
-  return Object.assign({
-    apikey: SB_KEY,
-    Authorization: 'Bearer ' + SB_KEY,
-    'Content-Type': 'application/json',
-  }, extra || {});
+  const h = { apikey: SB_KEY, 'Content-Type': 'application/json' };
+  // 旧anonキー(JWT, "eyJ"で始まる)のときだけ Bearer も付ける。
+  // 新方式の publishable キー(sb_publishable_...)は apikey だけでよい。
+  if (typeof SB_KEY === 'string' && SB_KEY.startsWith('eyJ')) h.Authorization = 'Bearer ' + SB_KEY;
+  return Object.assign(h, extra || {});
 }
 function _setSync(icon, hide) {
   const el = document.getElementById('sync-status');
@@ -666,7 +668,7 @@ function _setSync(icon, hide) {
   if (hide) setTimeout(() => { el.style.display = 'none'; }, 2000);
 }
 async function _sbGet(path) {
-  const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: _sbHeaders() });
+  const r = await fetch(`${SB_BASE}/rest/v1/${path}`, { headers: _sbHeaders() });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return r.json();
 }
@@ -719,7 +721,7 @@ async function flushSave() {
   _syncing = true; _setSync('⏳');
   try {
     if (progRows.length) {
-      const r = await fetch(`${SB_URL}/rest/v1/progress`, {
+      const r = await fetch(`${SB_BASE}/rest/v1/progress`, {
         method: 'POST', headers: _sbHeaders({ Prefer: 'resolution=merge-duplicates' }),
         body: JSON.stringify(progRows),
       });
@@ -727,7 +729,7 @@ async function flushSave() {
       _dirtyQ.clear();
     }
     if (histRows.length) {
-      const r = await fetch(`${SB_URL}/rest/v1/history`, {
+      const r = await fetch(`${SB_BASE}/rest/v1/history`, {
         method: 'POST', headers: _sbHeaders(), body: JSON.stringify(histRows),
       });
       if (!r.ok) throw new Error('history HTTP ' + r.status);
@@ -751,7 +753,7 @@ function scheduleSave() {
 async function cloudUpsertUser(user) {
   if (!_sbReady()) return;
   try {
-    await fetch(`${SB_URL}/rest/v1/users`, {
+    await fetch(`${SB_BASE}/rest/v1/users`, {
       method: 'POST', headers: _sbHeaders({ Prefer: 'resolution=merge-duplicates' }),
       body: JSON.stringify({ uid: user.uid, pw_hash: user.pwHash }),
     });
@@ -2281,9 +2283,9 @@ async function deleteUser(uid) {
     const q = `uid=eq.${encodeURIComponent(uid)}`;
     try {
       await Promise.all([
-        fetch(`${SB_URL}/rest/v1/history?${q}`,  { method:'DELETE', headers:_sbHeaders() }),
-        fetch(`${SB_URL}/rest/v1/progress?${q}`, { method:'DELETE', headers:_sbHeaders() }),
-        fetch(`${SB_URL}/rest/v1/users?${q}`,    { method:'DELETE', headers:_sbHeaders() }),
+        fetch(`${SB_BASE}/rest/v1/history?${q}`,  { method:'DELETE', headers:_sbHeaders() }),
+        fetch(`${SB_BASE}/rest/v1/progress?${q}`, { method:'DELETE', headers:_sbHeaders() }),
+        fetch(`${SB_BASE}/rest/v1/users?${q}`,    { method:'DELETE', headers:_sbHeaders() }),
       ]);
     } catch (e) { console.error('delete user:', e); }
   }
@@ -2311,8 +2313,8 @@ async function resetAll() {
     const q = `uid=eq.${encodeURIComponent(uid)}`;
     try {
       await Promise.all([
-        fetch(`${SB_URL}/rest/v1/history?${q}`,  { method:'DELETE', headers:_sbHeaders() }),
-        fetch(`${SB_URL}/rest/v1/progress?${q}`, { method:'DELETE', headers:_sbHeaders() }),
+        fetch(`${SB_BASE}/rest/v1/history?${q}`,  { method:'DELETE', headers:_sbHeaders() }),
+        fetch(`${SB_BASE}/rest/v1/progress?${q}`, { method:'DELETE', headers:_sbHeaders() }),
       ]);
     } catch (e) { console.error('reset:', e); }
   }
