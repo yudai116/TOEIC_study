@@ -640,65 +640,122 @@ const LEVEL_COLORS     = ['#94a3b8','#f87171','#fb923c','#fbbf24','#a3e635','#4a
 const DAY_MS           = 86400000;
 const DAILY_TARGET     = 100;
 
-// ── GitHub Gist ストレージ ─────────────────────────────────────
-// GIST_TOKEN はビルド時に GitHub Actions が注入します（ソースには含まれません）
-const GIST_TOKEN = 'INJECT_GIST_PAT_HERE';
-const GIST_ID = '97245ce1ee9af07f14216b974327dcf7';
-const GIST_FN = 'toeic-app-data.json';
-let _gistData  = null;
-let _saveTimer = null;
-let _syncing   = false;
+// ── Supabase ストレージ ──────────────────────────────────────────
+// SB_KEY は公開フロントエンド用の anon (publishable) キー。RLSで保護され、
+// ソースに含めて公開しても安全な設計（GitHubトークンのような秘密鍵ではない）。
+const SB_URL = 'INJECT_SUPABASE_URL';
+const SB_KEY = 'INJECT_SUPABASE_ANON_KEY';
+let _gistData    = null;   // 読み込んだ全データのメモリキャッシュ {users,progress,history}
+let _saveTimer   = null;
+let _syncing     = false;
+const _dirtyQ    = new Set();   // 未保存の進捗 qid
+let _pendingHist = [];          // 未保存の履歴行
 
-function _pat() { return GIST_TOKEN; }
+function _sbReady() { return typeof SB_URL === 'string' && SB_URL.startsWith('http'); }
+function _sbHeaders(extra) {
+  return Object.assign({
+    apikey: SB_KEY,
+    Authorization: 'Bearer ' + SB_KEY,
+    'Content-Type': 'application/json',
+  }, extra || {});
+}
+function _setSync(icon, hide) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.style.display = 'inline'; el.textContent = icon;
+  if (hide) setTimeout(() => { el.style.display = 'none'; }, 2000);
+}
+async function _sbGet(path) {
+  const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: _sbHeaders() });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
 
-async function gistLoad() {
+// 全データを読み込んで {users,progress,history} の形に組み立てる
+async function cloudLoad() {
+  if (!_sbReady()) return { version:1, users:[], progress:{}, history:{} };
   try {
-    const r = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-      headers: { Authorization: `token ${_pat()}`, Accept: 'application/vnd.github.v3+json' }
+    const [users, prog, hist] = await Promise.all([
+      _sbGet('users?select=uid,pw_hash'),
+      _sbGet('progress?select=uid,qid,level,correct_count,wrong_count,next_review,last_reviewed,first_studied'),
+      _sbGet('history?select=uid,ts,qid,correct'),
+    ]);
+    const data = { version:1, users:[], progress:{}, history:{} };
+    data.users = users.map(u => ({ uid: u.uid, pwHash: u.pw_hash }));
+    prog.forEach(row => {
+      (data.progress[row.uid] = data.progress[row.uid] || {})[row.qid] = {
+        level: row.level, correctCount: row.correct_count, wrongCount: row.wrong_count,
+        nextReview: row.next_review, lastReviewed: row.last_reviewed, firstStudied: row.first_studied,
+      };
     });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const gist = await r.json();
-    const content = gist.files[GIST_FN]?.content;
-    if (!content) return { version:1, users:[], progress:{}, history:{} };
-    return JSON.parse(content);
-  } catch(e) {
-    console.error('Gist load:', e);
+    hist.forEach(row => {
+      (data.history[row.uid] = data.history[row.uid] || []).push({ ts: row.ts, qid: row.qid, correct: row.correct });
+    });
+    return data;
+  } catch (e) {
+    console.error('cloud load:', e);
     return { version:1, users:[], progress:{}, history:{} };
   }
 }
 
-async function gistSave() {
-  if (!_gistData || _syncing) return;
-  _syncing = true;
-  const syncEl = document.getElementById('sync-status');
-  if (syncEl) { syncEl.style.display = 'inline'; syncEl.textContent = '⏳'; }
-  try {
-    await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `token ${_pat()}`,
-        Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ files: { [GIST_FN]: { content: JSON.stringify(_gistData) } } })
+// 進捗（変更ぶんのみ）と履歴をまとめて保存
+async function flushSave() {
+  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+  if (_syncing) return;
+  const uid = getCurUid();
+  if (!uid || !_sbReady()) return;
+  const progRows = [];
+  if (_gistData?.progress?.[uid]) {
+    _dirtyQ.forEach(qid => {
+      const p = _gistData.progress[uid][qid];
+      if (p) progRows.push({
+        uid, qid, level: p.level, correct_count: p.correctCount||0, wrong_count: p.wrongCount||0,
+        next_review: p.nextReview, last_reviewed: p.lastReviewed, first_studied: p.firstStudied,
+      });
     });
-    if (syncEl) { syncEl.textContent = '☁️'; setTimeout(() => { syncEl.style.display='none'; }, 2000); }
-  } catch(e) {
-    console.error('Gist save:', e);
-    if (syncEl) { syncEl.textContent = '⚠️'; }
+  }
+  const histRows = _pendingHist.splice(0);
+  if (!progRows.length && !histRows.length) return;
+  _syncing = true; _setSync('⏳');
+  try {
+    if (progRows.length) {
+      const r = await fetch(`${SB_URL}/rest/v1/progress`, {
+        method: 'POST', headers: _sbHeaders({ Prefer: 'resolution=merge-duplicates' }),
+        body: JSON.stringify(progRows),
+      });
+      if (!r.ok) throw new Error('progress HTTP ' + r.status);
+      _dirtyQ.clear();
+    }
+    if (histRows.length) {
+      const r = await fetch(`${SB_URL}/rest/v1/history`, {
+        method: 'POST', headers: _sbHeaders(), body: JSON.stringify(histRows),
+      });
+      if (!r.ok) throw new Error('history HTTP ' + r.status);
+    }
+    _setSync('☁️', true);
+  } catch (e) {
+    console.error('cloud save:', e);
+    _pendingHist = histRows.concat(_pendingHist);  // 失敗ぶんを戻す
+    _setSync('⚠️');
   } finally {
     _syncing = false;
   }
 }
 
-function scheduleGistSave() {
+function scheduleSave() {
   if (_saveTimer) clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(() => { _saveTimer = null; gistSave(); }, 3000);
+  _saveTimer = setTimeout(() => { _saveTimer = null; flushSave(); }, 3000);
 }
 
-async function flushGistSave() {
-  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
-  await gistSave();
+// ユーザー行を1件 upsert（新規登録など）
+async function cloudUpsertUser(user) {
+  if (!_sbReady()) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/users`, {
+      method: 'POST', headers: _sbHeaders({ Prefer: 'resolution=merge-duplicates' }),
+      body: JSON.stringify({ uid: user.uid, pw_hash: user.pwHash }),
+    });
+  } catch (e) { console.error('upsert user:', e); }
 }
 
 const GENRE_CATEGORIES = [
@@ -735,7 +792,7 @@ function loadUsers() {
 function saveUsers(u) {
   if (!_gistData) return;
   _gistData.users = u;
-  scheduleGistSave();
+  if (u.length) cloudUpsertUser(u[u.length - 1]);  // 末尾＝新規追加ユーザー
 }
 function getCurUid()  { return sessionStorage.getItem(CUR_UID_KEY) || ''; }
 function setCurUid(id){ sessionStorage.setItem(CUR_UID_KEY, id); }
@@ -835,7 +892,7 @@ function doSetup() {
 }
 
 function logout() {
-  flushGistSave().then(() => {
+  flushSave().then(() => {
     clearCurUid();
     progress = {}; history = [];
     showAuthScreen();
@@ -878,7 +935,7 @@ function saveProgress(p) {
   if (!_gistData) return;
   if (!_gistData.progress) _gistData.progress = {};
   _gistData.progress[getCurUid()] = p;
-  scheduleGistSave();
+  scheduleSave();
 }
 function loadHistory() {
   const uid = getCurUid();
@@ -899,11 +956,13 @@ function markDoneToday(qid) {
 function recordStudy(qid, correct) {
   const uid = getCurUid();
   if (!uid || !_gistData) return;
-  history.push({ ts: Date.now(), qid, correct });
+  const ts = Date.now();
+  history.push({ ts, qid, correct });
   if (!_gistData.history) _gistData.history = {};
-  const cutoff = Date.now() - 90 * DAY_MS;
-  _gistData.history[uid] = history.filter(x => x.ts > cutoff);
-  scheduleGistSave();
+  (_gistData.history[uid] = _gistData.history[uid] || []).push({ ts, qid, correct });
+  _dirtyQ.add(String(qid));
+  _pendingHist.push({ uid, ts, qid, correct });
+  scheduleSave();
   markDoneToday(qid);
 }
 function updateQProgress(progress, qid, correct) {
@@ -1627,8 +1686,8 @@ function setRankTab(id) {
 
 async function refreshRankingData(showSpin) {
   try {
-    if (_saveTimer) await flushGistSave();
-    const fresh = await gistLoad();
+    if (_saveTimer) await flushSave();
+    const fresh = await cloudLoad();
     if (fresh) _gistData = fresh;
     const me = getCurUid();
     if (me && _gistData) {
@@ -2211,13 +2270,22 @@ function exportData() {
   URL.revokeObjectURL(url);
 }
 
-function deleteUser(uid) {
+async function deleteUser(uid) {
   if (!confirm(`「${uid}」のアカウントと進捗データをすべて削除しますか？`)) return;
   if (_gistData) {
     if (_gistData.progress) delete _gistData.progress[uid];
     if (_gistData.history)  delete _gistData.history[uid];
     _gistData.users = (_gistData.users || []).filter(u => u.uid !== uid);
-    flushGistSave();
+  }
+  if (_sbReady()) {
+    const q = `uid=eq.${encodeURIComponent(uid)}`;
+    try {
+      await Promise.all([
+        fetch(`${SB_URL}/rest/v1/history?${q}`,  { method:'DELETE', headers:_sbHeaders() }),
+        fetch(`${SB_URL}/rest/v1/progress?${q}`, { method:'DELETE', headers:_sbHeaders() }),
+        fetch(`${SB_URL}/rest/v1/users?${q}`,    { method:'DELETE', headers:_sbHeaders() }),
+      ]);
+    } catch (e) { console.error('delete user:', e); }
   }
   clearCurUid();
   progress = {}; history = [];
@@ -2232,13 +2300,21 @@ function updateBadge() {
   else { b.style.display='none'; }
 }
 
-function resetAll() {
+async function resetAll() {
   const uid = getCurUid();
   progress = {}; history = [];
   if (_gistData && uid) {
     if (_gistData.progress) delete _gistData.progress[uid];
     if (_gistData.history)  delete _gistData.history[uid];
-    scheduleGistSave();
+  }
+  if (_sbReady() && uid) {
+    const q = `uid=eq.${encodeURIComponent(uid)}`;
+    try {
+      await Promise.all([
+        fetch(`${SB_URL}/rest/v1/history?${q}`,  { method:'DELETE', headers:_sbHeaders() }),
+        fetch(`${SB_URL}/rest/v1/progress?${q}`, { method:'DELETE', headers:_sbHeaders() }),
+      ]);
+    } catch (e) { console.error('reset:', e); }
   }
   showView('dashboard');
 }
@@ -2259,7 +2335,7 @@ function escHtml(s) {
 (async () => {
   document.getElementById('view').innerHTML = `
     <div class="center-box"><div class="spinner"></div><div style="color:var(--muted)">データを読み込んでいます...</div></div>`;
-  [_gistData] = await Promise.all([gistLoad(), loadQuestions()]);
+  [_gistData] = await Promise.all([cloudLoad(), loadQuestions()]);
   showAuthScreen();
 })();
 </script>
