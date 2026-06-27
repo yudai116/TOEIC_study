@@ -3,3 +3,4 @@ scraper.log
 __pycache__/
 *.pyc
 .github/
+supabase_migrate_data.sql
