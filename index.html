@@ -529,6 +529,7 @@
       display:flex; align-items:center; justify-content:center; font-weight:700;
     }
     .rank-name { flex:1; font-weight:600; word-break:break-all; }
+    .rank-sub { font-size:.72rem; color:var(--muted); font-weight:400; margin-top:2px; }
     .rank-youtag {
       font-size:.7rem; background:var(--blue); color:#fff;
       padding:1px 6px; border-radius:6px; margin-left:4px; font-weight:700;
@@ -678,12 +679,12 @@ async function cloudLoad() {
   if (!_sbReady()) return { version:1, users:[], progress:{}, history:{} };
   try {
     const [users, prog, hist] = await Promise.all([
-      _sbGet('users?select=uid,pw_hash'),
+      _sbGet('users?select=*'),
       _sbGet('progress?select=uid,qid,level,correct_count,wrong_count,next_review,last_reviewed,first_studied'),
       _sbGet('history?select=uid,ts,qid,correct'),
     ]);
     const data = { version:1, users:[], progress:{}, history:{} };
-    data.users = users.map(u => ({ uid: u.uid, pwHash: u.pw_hash }));
+    data.users = users.map(u => ({ uid: u.uid, pwHash: u.pw_hash, lastLogin: u.last_login || null }));
     prog.forEach(row => {
       (data.progress[row.uid] = data.progress[row.uid] || {})[row.qid] = {
         level: row.level, correctCount: row.correct_count, wrongCount: row.wrong_count,
@@ -758,6 +759,19 @@ async function cloudUpsertUser(user) {
       body: JSON.stringify({ uid: user.uid, pw_hash: user.pwHash }),
     });
   } catch (e) { console.error('upsert user:', e); }
+}
+
+// 最終ログイン日時を記録（last_login 列が無くても本処理は失敗するだけで他に影響なし）
+async function cloudTouchLogin(uid) {
+  if (!_sbReady() || !uid) return;
+  const now = Date.now();
+  const u = (_gistData?.users || []).find(x => x.uid === uid);
+  if (u) u.lastLogin = now;
+  try {
+    await fetch(`${SB_BASE}/rest/v1/users?uid=eq.${encodeURIComponent(uid)}`, {
+      method: 'PATCH', headers: _sbHeaders(), body: JSON.stringify({ last_login: now }),
+    });
+  } catch (e) { console.error('touch login:', e); }
 }
 
 const GENRE_CATEGORIES = [
@@ -867,6 +881,7 @@ function doLogin() {
   }
   errEl.style.display = 'none';
   setCurUid(user.uid);
+  cloudTouchLogin(user.uid);
   progress = loadProgress();
   history  = loadHistory();
   hideAuthScreen();
@@ -887,6 +902,7 @@ function doSetup() {
   users.push({ uid, pwHash: hashPw(pw) });
   saveUsers(users);
   setCurUid(uid);
+  cloudTouchLogin(uid);
   progress = {}; history = [];
   hideAuthScreen();
   showView('dashboard');
@@ -1596,8 +1612,18 @@ function computeRankStats() {
       attempts += (p.correctCount || 0) + (p.wrongCount || 0);
     });
     const accuracy = attempts >= 20 ? Math.round(correct / attempts * 100) : null;
-    return { uid, mastered, studied, correct, attempts, accuracy };
+    return { uid, mastered, studied, correct, attempts, accuracy, lastLogin: u.lastLogin || null };
   });
+}
+
+function _fmtLastLogin(ts) {
+  if (!ts) return '未ログイン';
+  const days = Math.floor((Date.now() - ts) / DAY_MS);
+  if (days <= 0) return '今日';
+  if (days === 1) return '昨日';
+  if (days < 7)  return days + '日前';
+  const d = new Date(ts);
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 function _rankSorted(stats, tab) {
@@ -1662,7 +1688,10 @@ function renderRanking() {
     <div class="rank-row ${r.uid===me?'is-me':''}">
       <div class="rank-pos">${i<3?medal[i]:(i+1)}</div>
       <div class="rank-avatar" style="background:${_avatarColor(r.uid)}">${escHtml(r.uid.charAt(0).toUpperCase())}</div>
-      <div class="rank-name">${escHtml(r.uid)}${r.uid===me?' <span class="rank-youtag">あなた</span>':''}</div>
+      <div class="rank-name">
+        ${escHtml(r.uid)}${r.uid===me?' <span class="rank-youtag">あなた</span>':''}
+        <div class="rank-sub">最終ログイン: ${_fmtLastLogin(r.lastLogin)}</div>
+      </div>
       <div class="rank-val">${fmt(r)}</div>
     </div>
   `).join('') : `<div style="text-align:center;color:var(--muted);padding:32px">該当するユーザーがいません</div>`;

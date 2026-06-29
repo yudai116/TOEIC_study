@@ -9,8 +9,11 @@
 create table if not exists public.users (
   uid        text primary key,
   pw_hash    text not null,
+  last_login bigint,
   created_at timestamptz default now()
 );
+-- 既存テーブルにも last_login 列を追加（既にあれば何もしない）
+alter table public.users add column if not exists last_login bigint;
 
 -- 学習進捗（ユーザー×問題ごとに1行）
 create table if not exists public.progress (
