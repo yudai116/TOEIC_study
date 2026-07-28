@@ -684,15 +684,17 @@ async function cloudLoad() {
       _sbGet('history?select=uid,ts,qid,correct'),
     ]);
     const data = { version:1, users:[], progress:{}, history:{} };
-    data.users = users.map(u => ({ uid: u.uid, pwHash: u.pw_hash, lastLogin: u.last_login || null }));
+    // Supabase(PostgREST)は bigint を文字列で返す場合があるため、時刻系は必ず数値化する
+    const _n = v => (v === null || v === undefined || v === '') ? null : Number(v);
+    data.users = users.map(u => ({ uid: u.uid, pwHash: u.pw_hash, lastLogin: _n(u.last_login) }));
     prog.forEach(row => {
       (data.progress[row.uid] = data.progress[row.uid] || {})[row.qid] = {
-        level: row.level, correctCount: row.correct_count, wrongCount: row.wrong_count,
-        nextReview: row.next_review, lastReviewed: row.last_reviewed, firstStudied: row.first_studied,
+        level: Number(row.level) || 0, correctCount: Number(row.correct_count) || 0, wrongCount: Number(row.wrong_count) || 0,
+        nextReview: _n(row.next_review), lastReviewed: _n(row.last_reviewed), firstStudied: _n(row.first_studied),
       };
     });
     hist.forEach(row => {
-      (data.history[row.uid] = data.history[row.uid] || []).push({ ts: row.ts, qid: row.qid, correct: row.correct });
+      (data.history[row.uid] = data.history[row.uid] || []).push({ ts: Number(row.ts), qid: String(row.qid), correct: !!row.correct });
     });
     return data;
   } catch (e) {
