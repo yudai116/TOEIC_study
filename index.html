@@ -676,31 +676,33 @@ async function _sbGet(path) {
 
 // 全データを読み込んで {users,progress,history} の形に組み立てる
 async function cloudLoad() {
-  if (!_sbReady()) return { version:1, users:[], progress:{}, history:{} };
-  try {
-    const [users, prog, hist] = await Promise.all([
-      _sbGet('users?select=*'),
-      _sbGet('progress?select=uid,qid,level,correct_count,wrong_count,next_review,last_reviewed,first_studied'),
-      _sbGet('history?select=uid,ts,qid,correct'),
-    ]);
-    const data = { version:1, users:[], progress:{}, history:{} };
-    // Supabase(PostgREST)は bigint を文字列で返す場合があるため、時刻系は必ず数値化する
-    const _n = v => (v === null || v === undefined || v === '') ? null : Number(v);
-    data.users = users.map(u => ({ uid: u.uid, pwHash: u.pw_hash, lastLogin: _n(u.last_login) }));
-    prog.forEach(row => {
+  const data = { version:1, users:[], progress:{}, history:{} };
+  if (!_sbReady()) return data;
+  // Supabase(PostgREST)は bigint を文字列で返す場合があるため、時刻系は必ず数値化する
+  const _n = v => (v === null || v === undefined || v === '') ? null : Number(v);
+  // 3テーブルを個別に読み込む。1つ失敗しても他（特にアカウント一覧）は巻き添えにしない
+  const [uR, pR, hR] = await Promise.allSettled([
+    _sbGet('users?select=*'),
+    _sbGet('progress?select=uid,qid,level,correct_count,wrong_count,next_review,last_reviewed,first_studied'),
+    _sbGet('history?select=uid,ts,qid,correct'),
+  ]);
+  if (uR.status === 'fulfilled') {
+    data.users = uR.value.map(u => ({ uid: u.uid, pwHash: u.pw_hash, lastLogin: _n(u.last_login) }));
+  } else { console.error('users load:', uR.reason); }
+  if (pR.status === 'fulfilled') {
+    pR.value.forEach(row => {
       (data.progress[row.uid] = data.progress[row.uid] || {})[row.qid] = {
         level: Number(row.level) || 0, correctCount: Number(row.correct_count) || 0, wrongCount: Number(row.wrong_count) || 0,
         nextReview: _n(row.next_review), lastReviewed: _n(row.last_reviewed), firstStudied: _n(row.first_studied),
       };
     });
-    hist.forEach(row => {
+  } else { console.error('progress load:', pR.reason); }
+  if (hR.status === 'fulfilled') {
+    hR.value.forEach(row => {
       (data.history[row.uid] = data.history[row.uid] || []).push({ ts: Number(row.ts), qid: String(row.qid), correct: !!row.correct });
     });
-    return data;
-  } catch (e) {
-    console.error('cloud load:', e);
-    return { version:1, users:[], progress:{}, history:{} };
-  }
+  } else { console.error('history load:', hR.reason); }
+  return data;
 }
 
 // 進捗（変更ぶんのみ）と履歴をまとめて保存
